@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.model.encoder.encoder_costvolume import EncoderCostVolumeCfg, OpacityMappingCfg, EncoderCostVolume
 from src.model.encoder.common.gaussian_adapter import GaussianAdapterCfg
 
+from torch.utils.data import DataLoader
 from omegaconf import DictConfig
 import hydra
 from jaxtyping import install_import_hook
@@ -25,24 +26,21 @@ with install_import_hook(
     from src.model.encoder import get_encoder
     from src.model.model_wrapper import ModelWrapper
 
-
-def cyan(text: str) -> str:
-    return f"{Fore.CYAN}{text}{Fore.RESET}"
-
+## Used to load configuration file upon calling the function
 @hydra.main(
     version_base=None,
     config_path="../config",
     config_name="main",
 )
-def visualize(cfg_dict: DictConfig, checkpoint_path):
+def visualize(cfg_dict: DictConfig):
 
     cfg = load_typed_root_config(cfg_dict)
     set_cfg(cfg_dict)
 
     name = "costvolume"
-    d_feature = 8
-    num_depth_candidates = 8
-    num_surfaces = 4
+    d_feature = 128
+    num_depth_candidates = 32
+    num_surfaces = 1
     visualizer = None
     gaussian_adapter = GaussianAdapterCfg(gaussian_scale_min=4, gaussian_scale_max=10, sh_degree=3)
     opacity_mapping = OpacityMappingCfg(initial=0.2, final=0.5, warm_up=2)
@@ -50,7 +48,7 @@ def visualize(cfg_dict: DictConfig, checkpoint_path):
     unimatch_weights_path = None
     downscale_factor = 0.1
     shim_patch_size = 0.3
-    multiview_trans_attn_split = 3
+    multiview_trans_attn_split = 8
     costvolume_unet_feat_dim = 3
     costvolume_unet_channel_mult = [0.5, 0.5, 0.5]
     costvolume_unet_attn_res = [1, 1, 1]
@@ -89,25 +87,13 @@ def visualize(cfg_dict: DictConfig, checkpoint_path):
         use_epipolar_trans=use_epipolar_trans
     )
 
-    encoder_cost_vol = EncoderCostVolume(encoder_cost_volume_cfg)
+    encoder_cost_vol = EncoderCostVolume(cfg.model.encoder)
 
-    model_kwargs = {
-        "optimizer_cfg": cfg.optimizer,
-        "test_cfg": cfg.test,
-        "train_cfg": cfg.train,
-        "encoder": encoder_cost_vol,
-        "encoder_visualizer": None,
-        "decoder": get_decoder(cfg.model.decoder, cfg.dataset),
-        "losses": get_losses(cfg.loss),
-        "step_tracker": None,
-    }
+    data_module = DataModule(cfg.dataset, cfg.data_loader)
+    test_dl = data_module.test_dataloader(cfg.dataset)
 
-    checkpoint_path = update_checkpoint_path(model_checkpoint_path, cfg.wandb)
-
-    model_wrapper = ModelWrapper.load_from_checkpoint(
-            checkpoint_path, **model_kwargs, strict=True)
-
-    print(model_wrapper)
+    for img in test_dl:
+        gaussians = encoder_cost_vol.forward(img['context'], 1)
 
     # gaussians = encoder_cost_vol(cfg.dataset, 0)
 
@@ -115,6 +101,4 @@ def visualize(cfg_dict: DictConfig, checkpoint_path):
 
 if __name__ == "__main__":
 
-    model_checkpoint_path = '../checkpoints/re10k.ckpt'
-
-    visualize(model_checkpoint_path)
+    visualize()
