@@ -1,0 +1,120 @@
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.model.encoder.encoder_costvolume import EncoderCostVolumeCfg, OpacityMappingCfg, EncoderCostVolume
+from src.model.encoder.common.gaussian_adapter import GaussianAdapterCfg
+
+from omegaconf import DictConfig
+import hydra
+from jaxtyping import install_import_hook
+
+with install_import_hook(
+    ("src",),
+    ("beartype", "beartype"),
+):
+    from src.config import load_typed_root_config
+    from src.dataset.data_module import DataModule
+    from src.global_cfg import set_cfg
+    from src.loss import get_losses
+    from src.misc.LocalLogger import LocalLogger
+    from src.misc.step_tracker import StepTracker
+    from src.misc.wandb_tools import update_checkpoint_path
+    from src.model.decoder import get_decoder
+    from src.model.encoder import get_encoder
+    from src.model.model_wrapper import ModelWrapper
+
+
+def cyan(text: str) -> str:
+    return f"{Fore.CYAN}{text}{Fore.RESET}"
+
+@hydra.main(
+    version_base=None,
+    config_path="../config",
+    config_name="main",
+)
+def visualize(cfg_dict: DictConfig, checkpoint_path):
+
+    cfg = load_typed_root_config(cfg_dict)
+    set_cfg(cfg_dict)
+
+    name = "costvolume"
+    d_feature = 8
+    num_depth_candidates = 8
+    num_surfaces = 4
+    visualizer = None
+    gaussian_adapter = GaussianAdapterCfg(gaussian_scale_min=4, gaussian_scale_max=10, sh_degree=3)
+    opacity_mapping = OpacityMappingCfg(initial=0.2, final=0.5, warm_up=2)
+    gaussians_per_pixel = 1
+    unimatch_weights_path = None
+    downscale_factor = 0.1
+    shim_patch_size = 0.3
+    multiview_trans_attn_split = 3
+    costvolume_unet_feat_dim = 3
+    costvolume_unet_channel_mult = [0.5, 0.5, 0.5]
+    costvolume_unet_attn_res = [1, 1, 1]
+    depth_unet_channel_mult = [1, 1, 1]
+    depth_unet_feat_dim = 32
+    depth_unet_attn_res = [100, 100, 100]
+    wo_depth_refine = True
+    wo_cost_volume = False
+    wo_backbone_cross_attn = True
+    wo_cost_volume_refine = True
+    use_epipolar_trans = True
+
+    encoder_cost_volume_cfg = EncoderCostVolumeCfg(
+        name=name,
+        d_feature = d_feature,
+        num_depth_candidates=num_depth_candidates,
+        num_surfaces=num_surfaces,
+        visualizer=visualizer,
+        gaussian_adapter=gaussian_adapter,
+        opacity_mapping=opacity_mapping,
+        gaussians_per_pixel=gaussians_per_pixel,
+        unimatch_weights_path=unimatch_weights_path,
+        downscale_factor=downscale_factor,
+        shim_patch_size=shim_patch_size,
+        multiview_trans_attn_split=multiview_trans_attn_split,
+        costvolume_unet_feat_dim=costvolume_unet_feat_dim,
+        costvolume_unet_channel_mult=costvolume_unet_channel_mult,
+        costvolume_unet_attn_res=costvolume_unet_attn_res,
+        depth_unet_channel_mult=depth_unet_channel_mult,
+        depth_unet_feat_dim=depth_unet_feat_dim,
+        depth_unet_attn_res=depth_unet_attn_res,
+        wo_depth_refine=wo_depth_refine,
+        wo_cost_volume=wo_cost_volume,
+        wo_backbone_cross_attn=wo_backbone_cross_attn,
+        wo_cost_volume_refine=wo_cost_volume_refine,
+        use_epipolar_trans=use_epipolar_trans
+    )
+
+    encoder_cost_vol = EncoderCostVolume(encoder_cost_volume_cfg)
+
+    model_kwargs = {
+        "optimizer_cfg": cfg.optimizer,
+        "test_cfg": cfg.test,
+        "train_cfg": cfg.train,
+        "encoder": encoder_cost_vol,
+        "encoder_visualizer": None,
+        "decoder": get_decoder(cfg.model.decoder, cfg.dataset),
+        "losses": get_losses(cfg.loss),
+        "step_tracker": None,
+    }
+
+    checkpoint_path = update_checkpoint_path(model_checkpoint_path, cfg.wandb)
+
+    model_wrapper = ModelWrapper.load_from_checkpoint(
+            checkpoint_path, **model_kwargs, strict=True)
+
+    print(model_wrapper)
+
+    # gaussians = encoder_cost_vol(cfg.dataset, 0)
+
+    print("YAY YOU DID IT")
+
+if __name__ == "__main__":
+
+    model_checkpoint_path = '../checkpoints/re10k.ckpt'
+
+    visualize(model_checkpoint_path)
