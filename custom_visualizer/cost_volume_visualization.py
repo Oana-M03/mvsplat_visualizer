@@ -4,13 +4,14 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.model.encoder.encoder_costvolume import EncoderCostVolume
-from src.model.types import Gaussians
 
-from omegaconf import DictConfig
-import hydra
 from jaxtyping import install_import_hook
 from dataclasses import fields
-import torch
+from hydra import compose, initialize
+import hydra
+from omegaconf import DictConfig
+
+from OptionChanger import OptionChanger
 
 with install_import_hook(
     ("src",),
@@ -20,56 +21,50 @@ with install_import_hook(
     from src.dataset.data_module import DataModule
     from src.global_cfg import set_cfg
 
-def reduce_gaussians(field, skip_factor):
-    return field[:, ::skip_factor, ...]
+global_cfg = None
+encoder_cfg = None
+data_module = None
+test_dl = None
 
-## Used to load configuration file upon calling the function
+def change_config(override_obj : OptionChanger):
+    # Change configuration of encoder model of MVSplat
+    override_dict = override_obj.get_config_override()
+
+    override_list = [f"++{k}={v}" for k, v in override_dict.items()]
+    
+    with initialize(version_base=None, config_path="../config/model/encoder"):
+        cfg = compose(config_name="costvolume", overrides=override_list)
+
+        global encoder_cfg
+        encoder_cfg = cfg
+
+        return cfg
+
 @hydra.main(
     version_base=None,
     config_path="../config",
     config_name="main",
 )
-def visualize(cfg_dict: DictConfig):
+def init_configs(cfg_dict: DictConfig):
+
+    global global_cfg
+    global_cfg = load_typed_root_config(cfg_dict)
+    set_cfg(global_cfg)
+
+    global data_module
+    data_module = DataModule(global_cfg.dataset, global_cfg.data_loader)
+
+    global test_dl
+    test_dl = data_module.test_dataloader(global_cfg.dataset)
+
+
+## Used to load configuration file upon calling the function
+def visualize(optionChanger: OptionChanger):
 
     gaussian_proportion = 0.05
 
-    cfg = load_typed_root_config(cfg_dict)
-    set_cfg(cfg_dict)
-
-    cost_volume_config = cfg.model.encoder
-
-    # Configure hyperparameters depending on the ablation that is selected
-    
-    # Settings for epipolar transformer
-    if (not cost_volume_config.use_epipolar_trans):
-        cost_volume_config.multiview_trans_attn_split = 5
-
-    # Settings for cost volume only
-    if (not cost_volume_config.wo_cost_volume):
-        cost_volume_config.d_feature = 128
-
-    # Settings for cost volume and cost volume refinement
-    if (not cost_volume_config.wo_cost_volume_refine) and (not cost_volume_config.wo_cost_volume):
-        cost_volume_config.costvolume_unet_feat_dim = 64
-        # Image sizes should be divisible by ALL unet attention resolutions
-        cost_volume_config.costvolume_unet_attn_res = [40]
-
-        # Length of channel multiplier determines the number of downsampling levels
-        cost_volume_config.costvolume_unet_channel_mult = [1, 2, 5]
-
-    # Settings for depth refinement
-    if (not cost_volume_config.wo_depth_refine):
-        cost_volume_config.depth_unet_feat_dim = 64
-        # Image sizes should be divisible by ALL unet attention resolutions
-        cost_volume_config.depth_unet_attn_res = [40]
-
-        # Length of channel multiplier determines the number of downsampling levels
-        cost_volume_config.depth_unet_channel_mult = [1, 2, 5]
-
-    encoder_cost_vol = EncoderCostVolume(cfg.model.encoder)
-
-    data_module = DataModule(cfg.dataset, cfg.data_loader)
-    test_dl = data_module.test_dataloader(cfg.dataset)
+    cfg = change_config(optionChanger)
+    encoder_cost_vol = EncoderCostVolume(cfg)
 
     gaussianList = []
 
@@ -94,4 +89,7 @@ def visualize(cfg_dict: DictConfig):
 
 if __name__ == "__main__":
 
-    visualize()
+    init_configs()
+
+    optionChanger = OptionChanger()
+    visualize(optionChanger)
