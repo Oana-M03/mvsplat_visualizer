@@ -1111,6 +1111,14 @@ class UNetModel(nn.Module):
         # emb = self.time_embed(t_emb)
         emb = None
 
+        # Input is [B, C, H, W]
+        orig_h, orig_w = (x.shape[2], x.shape[3])
+
+        # Find nearest multiples of 10 for smoother passing through unet
+        new_h = orig_h - (orig_h % 10)
+        new_w = orig_w - (orig_w % 10)
+        x = F.interpolate(x, (new_h, new_w), mode='bilinear')
+
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -1154,6 +1162,10 @@ class UNetModel(nn.Module):
                 h = module(h)
             # h = module(h, context)
         h = h.type(x.dtype)
+
+        # Upsample h to original size
+        h = F.interpolate(h, (orig_h, orig_w), mode='bilinear')
+
         if self.predict_codebook_ids:
             return self.id_predictor(h)
         else:

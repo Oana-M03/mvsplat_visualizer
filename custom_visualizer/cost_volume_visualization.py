@@ -87,6 +87,24 @@ def visualize(cfg_dict: DictConfig):
         use_epipolar_trans=use_epipolar_trans
     )
 
+    cost_volume_config = cfg.model.encoder
+
+    # A bit hacky but it works
+    if cost_volume_config.wo_depth_refine and cost_volume_config.wo_backbone_cross_attn and cost_volume_config.wo_cost_volume_refine and (not cost_volume_config.wo_cost_volume) and (not cost_volume_config.use_epipolar_trans):
+        cost_volume_config.costvolume_unet_feat_dim = 69
+        cost_volume_config.d_feature = 128
+        cost_volume_config.depth_unet_feat_dim = 64
+        cost_volume_config.multiview_trans_attn_split = 5
+
+    if cost_volume_config.wo_depth_refine and cost_volume_config.wo_backbone_cross_attn and (not cost_volume_config.wo_cost_volume_refine) and (not cost_volume_config.wo_cost_volume) and (not cost_volume_config.use_epipolar_trans):
+        cost_volume_config.costvolume_unet_feat_dim = 64
+        # Image sizes should be divisible by ALL unet attention resolutions
+        cost_volume_config.costvolume_unet_attn_res = [15]
+
+        # Length of channel multiplier determines the number of downsampling levels
+        cost_volume_config.costvolume_unet_channel_mult = [1, 2]
+
+
     encoder_cost_vol = EncoderCostVolume(cfg.model.encoder)
 
     data_module = DataModule(cfg.dataset, cfg.data_loader)
@@ -94,8 +112,6 @@ def visualize(cfg_dict: DictConfig):
 
     for img in test_dl:
         gaussians = encoder_cost_vol.forward(img['context'], 1)
-
-    # gaussians = encoder_cost_vol(cfg.dataset, 0)
 
     print("YAY YOU DID IT")
 
