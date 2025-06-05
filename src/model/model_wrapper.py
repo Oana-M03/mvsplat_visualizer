@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Protocol, runtime_checkable
 
-import moviepy.editor as mpy
+from moviepy import editor as mpy
 import torch
 import wandb
 from einops import pack, rearrange, repeat

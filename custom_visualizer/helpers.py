@@ -3,14 +3,19 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from src.model.encoder.common.gaussian_adapter import Gaussians
 from src.model.encoder.encoder_costvolume import EncoderCostVolume
+
+from scipy.spatial.transform import Rotation
 
 from jaxtyping import install_import_hook
 from dataclasses import fields
 from hydra import compose, initialize
 import hydra
 from omegaconf import DictConfig
-from torch import Tensor
+from typing import List
+import json
+import torch
 
 from OptionChanger import OptionChanger
 
@@ -62,7 +67,9 @@ def init_configs(cfg_dict: DictConfig):
 
 def obtain_gaussians(optionChanger: OptionChanger):
 
-    gaussian_proportion = 0.05
+    gaussian_proportion = optionChanger.proportion_to_keep
+
+    print(gaussian_proportion)
 
     cfg = change_config(optionChanger)
     encoder_cost_vol = EncoderCostVolume(cfg)
@@ -82,15 +89,51 @@ def obtain_gaussians(optionChanger: OptionChanger):
 
             new_val = value[:, ::skip_factor, ...]
 
-            setattr(new_val, field.name, value)
+            setattr(gaussians, field.name, new_val)
 
         gaussianList.append(gaussians)
 
-    print("YAY YOU DID IT")
+    return gaussianList
+
+def convert_gaussians_to_json(gaussians: List[Gaussians], json_folder_path: str):
+
+    for i, gaussian in enumerate(gaussians):
+        gauss_list = []
+
+        batch_size = getattr(gaussian, "means").shape[1]
+
+        for idx in range(batch_size):
+            gaussian_dict = {}
+
+            gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().numpy().tolist()
+            gaussian_dict['opacity'] = getattr(gaussian, "opacities").squeeze(0)[idx].detach().numpy().tolist()
+            gaussian_dict['scales'] = getattr(gaussian, "scales").squeeze(0)[idx, :].detach().numpy().tolist()
+
+            rotations = getattr(gaussian, "rotations").squeeze(0)[idx, :]
+
+            # Transform coordinates from xyzw to wxyz
+            rotations = torch.Tensor((rotations[3], rotations[0], rotations[1], rotations[2]))
+            rotations = rotations.detach().numpy()
+            euler_angles = Rotation.from_quat(rotations).as_euler('XYZ')
+            gaussian_dict['rotation'] = euler_angles.tolist()
+
+            gauss_list.append(gaussian_dict)
+
+        with open(f'{json_folder_path}/gaussians_{i}.json', 'w+') as f:
+            json.dump(gauss_list, f)
+
+        print(f'Saved gaussians from batch {i}')
+
 
 if __name__ == "__main__":
 
     init_configs()
 
     optionChanger = OptionChanger()
-    obtain_gaussians(optionChanger)
+    print("Obtaining Gaussians...")
+    all_gaussians = obtain_gaussians(optionChanger)
+    print("Obtained Gaussians. Converting to UI-compatible format...")
+    print("NOTE: this might take a while. Please wait for process to finish.")
+    
+    json_folder_path = 'custom_visualizer/UI/public'
+    convert_gaussians_to_json(all_gaussians, json_folder_path)

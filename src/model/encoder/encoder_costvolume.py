@@ -226,8 +226,7 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
 
         # Optionally apply a per-pixel opacity.
         opacity_multiplier = 1
-
-        return Gaussians(
+        gaussian = Gaussians(
             rearrange(
                 gaussians.means,
                 "b v r srf spp xyz -> b (v r srf spp) xyz",
@@ -245,6 +244,14 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
                 "b v r srf spp -> b (v r srf spp)",
             ),
         )
+        gaussian.scales = rearrange(
+            gaussians.scales, "b v r srf spp xyz -> b (v r srf spp) xyz"
+        )
+        gaussian.rotations = rearrange(
+            gaussians.rotations, "b v r srf spp xyzw -> b (v r srf spp) xyzw"
+        )
+        return gaussian
+        
 
     def get_data_shim(self) -> DataShim:
         def data_shim(batch: BatchedExample) -> BatchedExample:
