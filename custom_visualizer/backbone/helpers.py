@@ -10,6 +10,7 @@ from dataclasses import fields
 from hydra import compose, initialize
 import hydra
 from omegaconf import DictConfig
+from torch import Tensor
 
 from OptionChanger import OptionChanger
 
@@ -40,6 +41,7 @@ def change_config(override_obj : OptionChanger):
 
         return cfg
 
+## Used to load main configuration file upon calling the function
 @hydra.main(
     version_base=None,
     config_path="../config",
@@ -56,10 +58,9 @@ def init_configs(cfg_dict: DictConfig):
 
     global test_dl
     test_dl = data_module.test_dataloader(global_cfg.dataset)
+    
 
-
-## Used to load configuration file upon calling the function
-def visualize(optionChanger: OptionChanger):
+def obtain_gaussians(optionChanger: OptionChanger):
 
     gaussian_proportion = 0.05
 
@@ -92,4 +93,4 @@ if __name__ == "__main__":
     init_configs()
 
     optionChanger = OptionChanger()
-    visualize(optionChanger)
+    obtain_gaussians(optionChanger)

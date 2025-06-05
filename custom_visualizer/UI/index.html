@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVSplat Visualizer</title>
+    <style>
+        body {
+            font-family: Georgia, serif;
+            margin: 20px;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 30px;
+            font-weight: bold;
+            font-family: Georgia, serif;
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            font-family: Georgia, serif;
+        }
+        
+        .main-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .chart-container {
+            width: 75%;
+        }
+        
+        .controls-container {
+            width: 25%;
+        }
+        
+        .checkbox-container {
+            font-size: 20px;
+            font-family: Georgia, serif;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-container label {
+            display: block;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        hr {
+            border: none;
+            height: 1px;
+            background-color: #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">MVSplat Visualizer</div>
+    <div class="subtitle">By Elena-Oana Milchi</div>
+    <hr>
+    
+    <div class="main-container" style="display:flex; gap:10px">
+        <canvas id="gaussians-rendering" width="75%">
+            Your browser does not support HTML5
+        </canvas>
+        
+        <div class="controls-container" width="25%">
+            <div class="checkbox-container">
+                <label>
+                    <input type="checkbox" checked>
+                    Cost Volume Refinement
+                </label>
+                <label>
+                    <input type="checkbox" checked>
+                    Depth Refinement
+                </label>
+                <label>
+                    <input type="checkbox" checked>
+                    Use cross attention
+                </label>
+                <label>
+                    <input type="checkbox" checked>
+                    Use epipolar transformer
+                </label>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
