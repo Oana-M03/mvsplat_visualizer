@@ -26,16 +26,17 @@
         
         .main-container {
             display: flex;
+            position: relative;
             gap: 10px;
             margin-top: 20px;
         }
         
-        .chart-container {
-            width: 75%;
+        .button-container {
+            width: 25%;
         }
         
         .controls-container {
-            width: 25%;
+            width: 75%;
         }
         
         .checkbox-container {
@@ -54,6 +55,19 @@
             cursor: pointer;
         }
         
+        .render-button {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            margin: 5px;
+            width: 12rem;
+            height: 3rem;
+            border-radius: 1rem;
+            font-size: 1.5rem; 
+            font-family: Georgia, serif;
+            background-color: #85c1e9;
+        }
+
         hr {
             border: none;
             height: 1px;
@@ -68,11 +82,7 @@
     <hr>
     
     <div class="main-container" style="display:flex; gap:10px">
-        <canvas id="gaussians-rendering" width="75%">
-            Your browser does not support HTML5
-        </canvas>
-        
-        <div class="controls-container" width="25%">
+        <div class="controls-container">
             <div class="checkbox-container">
                 <label>
                     <input type="checkbox" checked>
@@ -92,7 +102,11 @@
                 </label>
             </div>
         </div>
+        <div class="button-container">
+            <button class="render-button" type="button">Render image</button>
+        </div>
     </div>
-    <script type="module" src="/main.js"></script>
+
+    <script type="module" src="main.js"></script>
 </body>
 </html>
