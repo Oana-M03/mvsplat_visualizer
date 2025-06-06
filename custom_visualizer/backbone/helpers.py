@@ -97,9 +97,10 @@ def obtain_gaussians(optionChanger: OptionChanger):
 
 def serializable_gaussians(gaussians: List[Gaussians], json_folder_path: str):
 
-    gauss_list = []
+    batch = []
 
     for i, gaussian in enumerate(gaussians):
+        gauss_list = []
 
         batch_size = getattr(gaussian, "means").shape[1]
 
@@ -119,6 +120,8 @@ def serializable_gaussians(gaussians: List[Gaussians], json_folder_path: str):
             gaussian_dict['rotation'] = euler_angles.tolist()
 
             gauss_list.append(gaussian_dict)
+
+        batch.append(gauss_list)
         
         print(f'Obtained gaussians from batch {i}')
 

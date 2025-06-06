@@ -2,6 +2,19 @@ import * as THREE from 'three';
 
 const button = document.querySelector(".render-button");
 
+function handleBatch(batch) {
+  if (Array.isArray(batch)) {
+    for (const gaussian of batch) {
+      add_gaussian_to_scene(gaussian);
+    }
+  } else if (batch && typeof batch === 'object') {
+    // Handle single object
+    add_gaussian_to_scene(batch);
+  } else {
+    console.warn('Received batch is neither array nor object:', batch);
+  }
+}
+
 button.addEventListener("click", () => {
 
   fetch('http://localhost:5000/data', {
@@ -9,20 +22,52 @@ button.addEventListener("click", () => {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ message: "Send Gaussians", value: 42 })
+    body: JSON.stringify({ message: 'Send Gaussians' })
   })
-  .then(response => response.json())
-  .then(data => {
-    data.forEach(gaussian => {
-      add_gaussian_to_scene(gaussian);
+    .then(response => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      function processText({ done, value }) {
+        if (done) {
+          if (buffer.trim().length > 0) {
+            try {
+              const obj = JSON.parse(buffer);
+              handleBatch(obj);
+            } catch (e) {
+              // Ignore trailing blank
+            }
+          }
+          return;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        let lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (line.trim().length > 0) {
+            try {
+              const obj = JSON.parse(line);
+
+              handleBatch(obj);
+            } catch (e) {
+              console.error('Error parsing batch:', e, line);
+            }
+          }
+        }
+        return reader.read().then(processText);
+      }
+      return reader.read().then(processText);
     })
-    // console.log('Response from backend:', data);
-  })
-  .catch(error => console.error('Error:', error));
+    .catch(error => {
+      console.error('Streaming error:', error);
+    });
 
 });
 
+/////////////////////////////////
 // RENDER GAUSSIANS ON SCREEN
+/////////////////////////////////
+
 const position = [0, 0, 0];
 
 const scene = new THREE.Scene();
@@ -31,9 +76,9 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const ellipsoidPosition = position;
 
 camera.position.set(
-  ellipsoidPosition[0] + 0.5,
+  ellipsoidPosition[0] - 0.1,
   ellipsoidPosition[1],
-  ellipsoidPosition[2] + 0.5
+  ellipsoidPosition[2]
 );
 
 camera.lookAt(
