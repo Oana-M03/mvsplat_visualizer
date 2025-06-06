@@ -1,30 +1,46 @@
 import * as THREE from 'three';
 
-const sample_json = {
-  "position": [-0.024850094690918922, -0.010145621374249458, -0.13689498603343964], 
-  "opacity": 0.48494166135787964, 
-  "scales": [0.0005547910695895553, 0.0005728864343836904, 0.000551257049664855], 
-  "rotation": [0.9204495101593337, -0.6861311735362289, 1.0780237193784532]
-}
+const button = document.querySelector(".render-button");
+
+button.addEventListener("click", () => {
+
+  fetch('http://localhost:5000/data', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ message: "Send Gaussians", value: 42 })
+  })
+  .then(response => response.json())
+  .then(data => {
+    data.forEach(gaussian => {
+      add_gaussian_to_scene(gaussian);
+    })
+    // console.log('Response from backend:', data);
+  })
+  .catch(error => console.error('Error:', error));
+
+});
+
+// RENDER GAUSSIANS ON SCREEN
+const position = [0, 0, 0];
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1000);
 
-const ellipsoidPosition = sample_json.position;
+const ellipsoidPosition = position;
 
 camera.position.set(
-  ellipsoidPosition[0] + 0.01,
+  ellipsoidPosition[0] + 0.5,
   ellipsoidPosition[1],
-  ellipsoidPosition[2]
+  ellipsoidPosition[2] + 0.5
 );
-// camera.updateProjectionMatrix();
 
 camera.lookAt(
   ellipsoidPosition[0],
   ellipsoidPosition[1],
   ellipsoidPosition[2]
 );
-// camera.updateProjectionMatrix();
 
 console.log('cam pos');
 console.log(camera.position);
@@ -60,8 +76,6 @@ function add_gaussian_to_scene(sample_json){
 
   scene.add(ellipsoidMesh);
 }
-
-add_gaussian_to_scene(sample_json);
 
 function animate() {
 

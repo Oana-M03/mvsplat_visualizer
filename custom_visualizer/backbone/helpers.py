@@ -1,7 +1,7 @@
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.model.encoder.common.gaussian_adapter import Gaussians
 from src.model.encoder.encoder_costvolume import EncoderCostVolume
@@ -17,7 +17,7 @@ from typing import List
 import json
 import torch
 
-from OptionChanger import OptionChanger
+from custom_visualizer.backbone.OptionChanger import OptionChanger
 
 with install_import_hook(
     ("src",),
@@ -37,8 +37,8 @@ def change_config(override_obj : OptionChanger):
     override_dict = override_obj.get_config_override()
 
     override_list = [f"++{k}={v}" for k, v in override_dict.items()]
-    
-    with initialize(version_base=None, config_path="../config/model/encoder"):
+
+    with initialize(version_base=None, config_path='../../config/model/encoder'):
         cfg = compose(config_name="costvolume", overrides=override_list)
 
         global encoder_cfg
@@ -49,7 +49,7 @@ def change_config(override_obj : OptionChanger):
 ## Used to load main configuration file upon calling the function
 @hydra.main(
     version_base=None,
-    config_path="../config",
+    config_path="../../config",
     config_name="main",
 )
 def init_configs(cfg_dict: DictConfig):
@@ -95,10 +95,11 @@ def obtain_gaussians(optionChanger: OptionChanger):
 
     return gaussianList
 
-def convert_gaussians_to_json(gaussians: List[Gaussians], json_folder_path: str):
+def serializable_gaussians(gaussians: List[Gaussians], json_folder_path: str):
+
+    gauss_list = []
 
     for i, gaussian in enumerate(gaussians):
-        gauss_list = []
 
         batch_size = getattr(gaussian, "means").shape[1]
 
@@ -118,15 +119,12 @@ def convert_gaussians_to_json(gaussians: List[Gaussians], json_folder_path: str)
             gaussian_dict['rotation'] = euler_angles.tolist()
 
             gauss_list.append(gaussian_dict)
+        
+        print(f'Obtained gaussians from batch {i}')
 
-        with open(f'{json_folder_path}/gaussians_{i}.json', 'w+') as f:
-            json.dump(gauss_list, f)
+    return gauss_list
 
-        print(f'Saved gaussians from batch {i}')
-
-
-if __name__ == "__main__":
-
+def get_data():
     init_configs()
 
     optionChanger = OptionChanger()
@@ -135,5 +133,11 @@ if __name__ == "__main__":
     print("Obtained Gaussians. Converting to UI-compatible format...")
     print("NOTE: this might take a while. Please wait for process to finish.")
     
-    json_folder_path = 'custom_visualizer/UI/public'
-    convert_gaussians_to_json(all_gaussians, json_folder_path)
+    json_folder_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../UI/public'))
+
+    return serializable_gaussians(all_gaussians, json_folder_path)
+
+
+if __name__ == "__main__":
+
+    get_data()
