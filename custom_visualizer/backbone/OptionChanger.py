@@ -26,7 +26,10 @@ class OptionChanger(object):
     def get_config_override(self):
         override_dict = self.__dict__
 
-        for k, v in override_dict.items():
-            override_dict[k] = str(v).lower()
+        final_dict = {}
 
-        return override_dict
+        for k, v in override_dict.items():
+            if k != 'proportion_to_keep':
+                final_dict[k] = str(v).lower()
+
+        return final_dict

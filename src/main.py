@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import warnings
 
+import pickle
 import hydra
 import torch
 import wandb
@@ -148,14 +149,25 @@ def train(cfg_dict: DictConfig):
     )
 
     if cfg.mode == "train":
-        trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
-            checkpoint_path if cfg.checkpointing.resume else None))
+        # trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
+        #     checkpoint_path if cfg.checkpointing.resume else None))
+        print('Invalid. Please run the function with mode=test.')
     else:
-        trainer.test(
-            model_wrapper,
-            datamodule=data_module,
-            ckpt_path=checkpoint_path,
-        )
+        first_item = data_module.test_dataloader()
+        first_item = next(iter(first_item))
+        encoder = model_wrapper.encoder
+        gaussians = encoder(first_item['context'], 1)
+        
+        gaussian_file_path = 'custom_visualizer/UI/public'
+
+        with open (f'{gaussian_file_path}/gaussians.pkl', 'w+b') as f:
+            pickle.dump(gaussians, f)
+
+        # trainer.test(
+        #     model_wrapper,
+        #     datamodule=data_module,
+        #     ckpt_path=checkpoint_path,
+        # )
 
 
 if __name__ == "__main__":

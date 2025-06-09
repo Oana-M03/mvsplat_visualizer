@@ -3,34 +3,39 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.model.encoder.common.gaussian_adapter import Gaussians
-from src.model.encoder.encoder_costvolume import EncoderCostVolume
-
 from scipy.spatial.transform import Rotation
 
 from jaxtyping import install_import_hook
 from dataclasses import fields
 from hydra import compose, initialize
+from hydra.utils import call
 import hydra
 from omegaconf import DictConfig
 from typing import List
 import json
 import torch
+import pickle
 
 from custom_visualizer.backbone.OptionChanger import OptionChanger
 
-with install_import_hook(
-    ("src",),
-    ("beartype", "beartype"),
-):
-    from src.config import load_typed_root_config
-    from src.dataset.data_module import DataModule
-    from src.global_cfg import set_cfg
+from src.config import load_typed_root_config
+from src.dataset.data_module import DataModule
+from src.global_cfg import set_cfg
+from src.model.encoder import EncoderCostVolume
+from src.model.encoder.common.gaussian_adapter import Gaussians
+from src.main import train
 
 global_cfg = None
 encoder_cfg = None
-data_module = None
-test_dl = None
+options = OptionChanger()
+model = None
+
+def load_model():
+    
+    with open('custom_visualizer/backbone/encoder.pkl', 'rb') as f:
+        encoder = pickle.load(f)
+
+    return encoder
 
 def change_config(override_obj : OptionChanger):
     # Change configuration of encoder model of MVSplat
@@ -58,87 +63,70 @@ def init_configs(cfg_dict: DictConfig):
     global_cfg = load_typed_root_config(cfg_dict)
     set_cfg(global_cfg)
 
-    global data_module
-    data_module = DataModule(global_cfg.dataset, global_cfg.data_loader)
+def obtain_gaussians(encoder_cost_vol: EncoderCostVolume, gaussian_proportion):
 
-    global test_dl
-    test_dl = data_module.test_dataloader(global_cfg.dataset)
+    train()
+
+    # get gaussians from pickle file
+    with open('custom_visualizer/UI/public/gaussians.pkl', 'rb') as f:
+        gaussianList = pickle.load(f)
+
+    # get only the top proportion in terms of opacity
     
-
-def obtain_gaussians(optionChanger: OptionChanger):
-
-    gaussian_proportion = optionChanger.proportion_to_keep
-
-    print(gaussian_proportion)
-
-    cfg = change_config(optionChanger)
-    encoder_cost_vol = EncoderCostVolume(cfg)
-
-    gaussianList = []
-
-    for img in test_dl:
-        gaussians = encoder_cost_vol.forward(img['context'], 1)
-
-        # Reduce the number of gaussians to be shown depending on defined percentage
-        for field in fields(gaussians):
-            value = getattr(gaussians, field.name)
-
-            all_gaussians = value.shape[1]
-            final_no_gaussians = gaussian_proportion * all_gaussians
-            skip_factor = int(all_gaussians // final_no_gaussians)
-
-            new_val = value[:, ::skip_factor, ...]
-
-            setattr(gaussians, field.name, new_val)
-
-        gaussianList.append(gaussians)
 
     return gaussianList
 
-def serializable_gaussians(gaussians: List[Gaussians], json_folder_path: str):
+def serializable_gaussians(gaussian: Gaussians):
 
     batch = []
 
-    for i, gaussian in enumerate(gaussians):
-        gauss_list = []
+    gauss_list = []
 
-        batch_size = getattr(gaussian, "means").shape[1]
+    batch_size = getattr(gaussian, "means").shape[1]
 
-        for idx in range(batch_size):
-            gaussian_dict = {}
+    for idx in range(batch_size):
+        gaussian_dict = {}
 
-            gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().numpy().tolist()
-            gaussian_dict['opacity'] = getattr(gaussian, "opacities").squeeze(0)[idx].detach().numpy().tolist()
-            gaussian_dict['scales'] = getattr(gaussian, "scales").squeeze(0)[idx, :].detach().numpy().tolist()
+        gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().numpy().tolist()
+        gaussian_dict['opacity'] = getattr(gaussian, "opacities").squeeze(0)[idx].detach().numpy().tolist()
+        gaussian_dict['scales'] = getattr(gaussian, "scales").squeeze(0)[idx, :].detach().numpy().tolist()
 
-            rotations = getattr(gaussian, "rotations").squeeze(0)[idx, :]
+        rotations = getattr(gaussian, "rotations").squeeze(0)[idx, :]
 
-            # Transform coordinates from xyzw to wxyz
-            rotations = torch.Tensor((rotations[3], rotations[0], rotations[1], rotations[2]))
-            rotations = rotations.detach().numpy()
-            euler_angles = Rotation.from_quat(rotations).as_euler('XYZ')
-            gaussian_dict['rotation'] = euler_angles.tolist()
+        # Transform coordinates from xyzw to wxyz
+        rotations = torch.Tensor((rotations[3], rotations[0], rotations[1], rotations[2]))
+        rotations = rotations.detach().numpy()
+        euler_angles = Rotation.from_quat(rotations).as_euler('XYZ')
+        gaussian_dict['rotation'] = euler_angles.tolist()
 
-            gauss_list.append(gaussian_dict)
+        gauss_list.append(gaussian_dict)
 
         batch.append(gauss_list)
         
-        print(f'Obtained gaussians from batch {i}')
+    print(f'Gaussians obtained')
 
     return gauss_list
 
 def get_data():
+
+    # global options
+    # new_options = OptionChanger()
+
+    # global encoder_cfg
+    # encoder_cfg = change_config(new_options)
+
     init_configs()
 
-    optionChanger = OptionChanger()
+    # print("Loading the model...")
+    # global model
+    # if (not model):
+    #     model = load_model()
     print("Obtaining Gaussians...")
-    all_gaussians = obtain_gaussians(optionChanger)
+    all_gaussians = obtain_gaussians(model, options.proportion_to_keep)
     print("Obtained Gaussians. Converting to UI-compatible format...")
     print("NOTE: this might take a while. Please wait for process to finish.")
-    
-    json_folder_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../UI/public'))
 
-    return serializable_gaussians(all_gaussians, json_folder_path)
+    return serializable_gaussians(all_gaussians)
 
 
 if __name__ == "__main__":

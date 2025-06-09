@@ -1,6 +1,6 @@
 defaults:
   - dataset: re10k
-  - optional dataset/view_sampler_dataset_specific_config: ${dataset/view_sampler}_${dataset}
+  - optional dataset/view_sampler_dataset_specific_config: $evaluation
   - model/encoder: costvolume
   - model/decoder: splatting_cuda
   - loss: [mse]
@@ -12,7 +12,7 @@ wandb:
   mode: disabled
   id: null
 
-mode: train
+mode: test
 
 dataset:
   overfit_to_scene: null
@@ -41,7 +41,7 @@ optimizer:
   cosine_lr: true
 
 checkpointing:
-  load: null
+  load: checkpoints/re10k.ckpt
   every_n_train_steps: 20000  # 5000
   save_top_k: -1
   pretrained_model: null
