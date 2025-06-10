@@ -2,7 +2,11 @@ import os
 from pathlib import Path
 import warnings
 
+from torchvision.transforms.functional import to_pil_image
+
 import pickle
+
+
 import hydra
 import torch
 import wandb
@@ -158,6 +162,14 @@ def train(cfg_dict: DictConfig):
         encoder = model_wrapper.encoder
         gaussians = encoder(first_item['context'], 1)
         
+        # count = 0
+
+        # for img in first_item['target']['image'].squeeze():
+        #     print(img.shape)
+        #     pil_img = to_pil_image(img)
+        #     pil_img.save(f'img_{count}.png')
+        #     count += 1
+
         gaussian_file_path = 'custom_visualizer/UI/public'
 
         with open (f'{gaussian_file_path}/gaussians.pkl', 'w+b') as f:

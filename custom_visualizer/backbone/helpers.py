@@ -30,13 +30,6 @@ encoder_cfg = None
 options = OptionChanger()
 model = None
 
-def load_model():
-    
-    with open('custom_visualizer/backbone/encoder.pkl', 'rb') as f:
-        encoder = pickle.load(f)
-
-    return encoder
-
 def change_config(override_obj : OptionChanger):
     # Change configuration of encoder model of MVSplat
     override_dict = override_obj.get_config_override()
@@ -45,9 +38,6 @@ def change_config(override_obj : OptionChanger):
 
     with initialize(version_base=None, config_path='../../config/model/encoder'):
         cfg = compose(config_name="costvolume", overrides=override_list)
-
-        global encoder_cfg
-        encoder_cfg = cfg
 
         return cfg
 
@@ -63,28 +53,32 @@ def init_configs(cfg_dict: DictConfig):
     global_cfg = load_typed_root_config(cfg_dict)
     set_cfg(global_cfg)
 
-def obtain_gaussians(encoder_cost_vol: EncoderCostVolume, gaussian_proportion):
+def obtain_gaussians(gaussian_proportion=0.05):
 
     train()
 
     # get gaussians from pickle file
     with open('custom_visualizer/UI/public/gaussians.pkl', 'rb') as f:
-        gaussianList = pickle.load(f)
+        gaussian = pickle.load(f)
 
-    # get only the top proportion in terms of opacity
-    
+    print(f'Keeping only the top {gaussian_proportion * 100}% of the Gaussians in terms of opacity')
 
-    return gaussianList
+    opacities = getattr(gaussian, "opacities").squeeze(0).detach().numpy()
+    no_to_select = int(len(opacities) * gaussian_proportion)
 
-def serializable_gaussians(gaussian: Gaussians):
+    indices = opacities.argsort()[-no_to_select:][::-1]
+
+    return gaussian, indices
+
+def serializable_gaussians(gaussian: Gaussians, indices: List[int]):
 
     batch = []
 
     gauss_list = []
 
-    batch_size = getattr(gaussian, "means").shape[1]
+    print(f'We have: {len(indices)} Gaussians')
 
-    for idx in range(batch_size):
+    for idx in indices:
         gaussian_dict = {}
 
         gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().numpy().tolist()
@@ -101,32 +95,30 @@ def serializable_gaussians(gaussian: Gaussians):
 
         gauss_list.append(gaussian_dict)
 
+        # Make batches of 100 Gaussians for more manageable data streaming
+        if len(gauss_list) % 100 == 0:
+            batch.append(gauss_list)
+            gauss_list = []
+    
+    if gauss_list:
         batch.append(gauss_list)
-        
+
     print(f'Gaussians obtained')
 
-    return gauss_list
+    return batch
 
 def get_data():
 
-    # global options
-    # new_options = OptionChanger()
-
-    # global encoder_cfg
-    # encoder_cfg = change_config(new_options)
+    new_options = OptionChanger()
 
     init_configs()
 
-    # print("Loading the model...")
-    # global model
-    # if (not model):
-    #     model = load_model()
     print("Obtaining Gaussians...")
-    all_gaussians = obtain_gaussians(model, options.proportion_to_keep)
+    all_gaussians, indices = obtain_gaussians(new_options.proportion_to_keep)
     print("Obtained Gaussians. Converting to UI-compatible format...")
     print("NOTE: this might take a while. Please wait for process to finish.")
 
-    return serializable_gaussians(all_gaussians)
+    return serializable_gaussians(all_gaussians, indices)
 
 
 if __name__ == "__main__":

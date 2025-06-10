@@ -1,6 +1,20 @@
 import * as THREE from 'three';
+import { AxesHelper } from 'three';
 
 const button = document.querySelector(".render-button");
+
+var mesh_IDs = [];
+
+function scene_cleanup(){
+  mesh_IDs.map(id =>{
+    var mesh = scene.getObjectByProperty('uuid', id);
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+    scene.remove(mesh);
+  });
+  renderer.renderLists.dispose();
+  mesh_IDs = [];
+}
 
 function handleBatch(batch) {
   if (Array.isArray(batch)) {
@@ -16,6 +30,8 @@ function handleBatch(batch) {
 }
 
 button.addEventListener("click", () => {
+
+  scene_cleanup();
 
   fetch('http://localhost:5000/data', {
     method: 'POST',
@@ -68,28 +84,16 @@ button.addEventListener("click", () => {
 // RENDER GAUSSIANS ON SCREEN
 /////////////////////////////////
 
-const position = [0, 0, 0];
+var position = [0, 0, 0];
+var len = 0;
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff); // set background color to white
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1000);
 
-const ellipsoidPosition = position;
-
-camera.position.set(
-  ellipsoidPosition[0] - 0.1,
-  ellipsoidPosition[1],
-  ellipsoidPosition[2]
-);
-
-camera.lookAt(
-  ellipsoidPosition[0],
-  ellipsoidPosition[1],
-  ellipsoidPosition[2]
-);
-
-console.log('cam pos');
-console.log(camera.position);
-console.log(camera.rotation);
+const axesHelper = new AxesHelper(2);
+scene.add(axesHelper);
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -97,7 +101,10 @@ renderer.setAnimationLoop( animate );
 document.body.appendChild( renderer.domElement );
 
 function add_gaussian_to_scene(sample_json){
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: sample_json.opacity });
+
+  const color = new THREE.Color(0, 255 * sample_json.opacity, 0);
+  var material = new THREE.MeshBasicMaterial({ color: color, transparent: false, opacity: sample_json.opacity });
+
   const ellipsoidGeometry = new THREE.SphereGeometry(1, 32, 32);
   const ellipsoidMesh = new THREE.Mesh(ellipsoidGeometry, material);
 
@@ -120,9 +127,23 @@ function add_gaussian_to_scene(sample_json){
   );
 
   scene.add(ellipsoidMesh);
+
+  mesh_IDs.push(ellipsoidMesh.uuid);
+
+  // Change position of camera and light
+
+  position[0] = (position[0] * len + sample_json.position[0]) / (len + 1);
+  position[1] = (position[1] * len + sample_json.position[1]) / (len + 1);
+  position[2] = (position[2] * len + sample_json.position[2]) / (len + 1);
+  len = len + 1;
+
 }
 
 function animate() {
+
+  camera.position.set(-0.1, -0.1, -0.3);
+
+  camera.lookAt(position[0], position[1], position[2]);
 
   renderer.render( scene, camera );
 

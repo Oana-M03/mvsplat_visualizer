@@ -3,7 +3,7 @@ from flask_cors import CORS
 import gc
 import json
 
-from helpers import get_data
+from custom_visualizer.backbone.helpers import get_data
 
 app = Flask(__name__)
 CORS(app)
