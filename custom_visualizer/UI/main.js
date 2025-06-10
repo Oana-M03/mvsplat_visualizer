@@ -1,47 +1,73 @@
 import * as THREE from 'three';
 import { AxesHelper } from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 var mesh_IDs = [];
 var options = {};
+var image_blobs = [];
+let currIndex = 0;
 
-///////////////////////////////////
-////////// UI-RELATED FUNCTIONALITY
+/////////////////////////////////////
+/////////// UI-RELATED FUNCTIONALITY
 /////////////////////////////////////
 
 function switchOptions(){
   var checkboxes = document.querySelectorAll(".option");
   console.log(checkboxes.length);
   checkboxes.forEach(checkbox => {
-    console.log(checkbox.id);
-    console.log(checkbox.checked)
     options[checkbox.id] = checkbox.checked;
   });
 }
 
 function handleBatch(batch) {
-  if (Array.isArray(batch)) {
-    for (const gaussian of batch) {
-      add_gaussian_to_scene(gaussian);
+
+  if (options['vis_choice'] == 'gaussians'){
+    if (Array.isArray(batch)) {
+      for (const gaussian of batch) {
+        add_gaussian_to_scene(gaussian);
+      }
+    } else if (batch && typeof batch === 'object') {
+      // Handle single object
+      add_gaussian_to_scene(batch);
+    } else {
+      console.warn('Received batch is neither array nor object:', batch);
     }
-  } else if (batch && typeof batch === 'object') {
-    // Handle single object
-    add_gaussian_to_scene(batch);
-  } else {
-    console.warn('Received batch is neither array nor object:', batch);
   }
+  
 }
 
+const radio_div = document.querySelector(".scene-choice");
+
+radio_div.addEventListener('change', event =>{
+  if(event.target.type == 'radio' && event.target.name == 'vis_pref'){
+    options['vis_choice'] = event.target.value;
+
+    if(event.target.value == 'images'){
+      document.querySelector(".show-images").style.visble = 'true';
+      document.querySelector(".checkbox-container").style.visible = 'false';
+      scene_cleanup();
+      hide_scene();
+    } else if(event.target.value == 'video'){
+      document.querySelector(".show-images").style.visble = 'false';
+      ocument.querySelector(".checkbox-container").style.visible = 'true';
+      scene_cleanup();
+      hide_scene();
+    } else{
+      document.querySelector(".show-images").style.visble = 'false';
+      ocument.querySelector(".checkbox-container").style.visible = 'true';
+      show_scene();
+    }
+
+  }
+});
+
 const button = document.querySelector(".render-button");
-button.addEventListener("click", () => {
 
-  scene_cleanup();
-
-  switchOptions();
-
-  fetch('http://localhost:5000/data', {
+function fetch_gaussians(){
+  fetch('http://localhost:5000/gaussians', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({ message: options })
   })
@@ -82,11 +108,64 @@ button.addEventListener("click", () => {
     .catch(error => {
       console.error('Streaming error:', error);
     });
+}
+
+function fetch_image(index){
+  fetch('http://localhost:5000/images', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ index : index })})
+    .then(response => response.blob())
+    .then(blob =>{
+      console.log(blob);
+      document.querySelector('#main-image').src = URL.createObjectURL(blob);
+    }
+  );
+} 
+
+button.addEventListener("click", () => {
+
+  scene_cleanup();
+
+  switchOptions();
+
+  radio_div.style.pointerEvents = 'none';
+
+  if(options['vis_choice'] == 'gaussians'){
+    fetch_gaussians();
+  } else if(options['vis_choice'] == 'images'){
+    console.log('HERE');
+    fetch_image(0);
+  }
+
+  radio_div.style.pointerEvents = 'auto';
 
 });
 
+const prevButton = document.querySelector("#prev");
+prevButton.addEventListener("click", () =>{
+  prevImage();
+});
+
+const nextButton = document.querySelector("#next");
+nextButton.addEventListener("click", () =>{
+  nextImage();
+})
+
+function prevImage(){
+  currIndex = currIndex - 1;
+  fetch_image(currIndex);
+}
+
+function nextImage(){
+  currIndex = currIndex + 1;
+  fetch_image(currIndex);
+}
+
 /////////////////////////////////
-// RENDER GAUSSIANS ON SCREEN
+//////// RENDERING FUNCTIONALITY
 /////////////////////////////////
 
 var position = [0, 0, 0];
@@ -102,9 +181,9 @@ const axesHelper = new AxesHelper(2);
 scene.add(axesHelper);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.setAnimationLoop( animate );
-document.body.appendChild( renderer.domElement );
+renderer.setSize( window.outerWidth, window.outerHeight );
+
+const controls = new OrbitControls( camera, renderer.domElement );
 
 function add_gaussian_to_scene(sample_json){
 
@@ -114,11 +193,15 @@ function add_gaussian_to_scene(sample_json){
   const ellipsoidGeometry = new THREE.SphereGeometry(1, 32, 32);
   const ellipsoidMesh = new THREE.Mesh(ellipsoidGeometry, material);
 
+  const offset = new THREE.Vector3(sample_json.avg_pos[0], sample_json.avg_pos[1], sample_json.avg_pos[2]);
+
   ellipsoidMesh.position.set(
     sample_json.position[0],
     sample_json.position[1],
     sample_json.position[2]
   );
+
+  ellipsoidMesh.position.sub(offset);
 
   ellipsoidMesh.scale.set(
     sample_json.scales[0],
@@ -156,9 +239,21 @@ function scene_cleanup(){
   mesh_IDs = [];
 }
 
+function hide_scene(){
+  scene_cleanup();
+  renderer.domElement.remove();
+}
+
+function show_scene(){
+  renderer.setAnimationLoop( animate );
+  document.body.appendChild( renderer.domElement );
+}
+
 function animate() {
 
-  camera.lookAt(position[0], position[1], position[2]);
+  // camera.lookAt(position[0], position[1], position[2]);
+
+  controls.update();
 
   renderer.render( scene, camera );
 

@@ -1,20 +1,20 @@
 import sys
 import os
 
+from src.misc.step_tracker import StepTracker
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from scipy.spatial.transform import Rotation
 
-from jaxtyping import install_import_hook
-from dataclasses import fields
-from hydra import compose, initialize
-from hydra.utils import call
 import hydra
 from omegaconf import DictConfig
 from typing import List
 import json
 import torch
 import pickle
+import numpy as np
+import torchvision.transforms.functional as F
 
 from custom_visualizer.backbone.OptionChanger import OptionChanger
 
@@ -24,6 +24,7 @@ from src.global_cfg import set_cfg
 from src.model.encoder import EncoderCostVolume
 from src.model.encoder.common.gaussian_adapter import Gaussians
 from src.main import train
+from src.dataset.data_module import get_dataset
 
 global_cfg = None
 model = None
@@ -81,6 +82,9 @@ def serializable_gaussians(gaussian: Gaussians, indices: List[int]):
 
     print(f'We have: {len(indices)} Gaussians')
 
+    avg_pos = getattr(gaussian, "means").squeeze(0).detach().numpy()
+    avg_pos = np.mean(avg_pos[indices], axis=0).tolist()
+
     for idx in indices:
         gaussian_dict = {}
 
@@ -95,6 +99,8 @@ def serializable_gaussians(gaussian: Gaussians, indices: List[int]):
         rotations = rotations.detach().numpy()
         euler_angles = Rotation.from_quat(rotations).as_euler('XYZ')
         gaussian_dict['rotation'] = euler_angles.tolist()
+
+        gaussian_dict['avg_pos'] = avg_pos
 
         gauss_list.append(gaussian_dict)
 
@@ -124,7 +130,26 @@ def get_data(data_dict):
 
     return serializable_gaussians(all_gaussians, indices)
 
+def get_images():
+    init_configs()
+
+    print("Obtaining input images...")
+
+    global global_cfg
+    dataset = get_dataset(global_cfg.dataset, "test", StepTracker())
+    img = next(iter(dataset))
+    target_img = img['target']['image']
+
+    img_list = []
+
+    for img in target_img:
+        img_list.append(F.to_pil_image(img))
+    
+    print("Input images obtained")
+
+    return img_list
 
 if __name__ == "__main__":
 
-    get_data()
+    # get_data({'cv_refinement': True, 'depth_refinement': True, 'cross_attention': True, 'epipolar_transformer': True})
+    get_images()
