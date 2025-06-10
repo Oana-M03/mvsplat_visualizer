@@ -1,19 +1,21 @@
 import * as THREE from 'three';
 import { AxesHelper } from 'three';
 
-const button = document.querySelector(".render-button");
-
 var mesh_IDs = [];
+var options = {};
 
-function scene_cleanup(){
-  mesh_IDs.map(id =>{
-    var mesh = scene.getObjectByProperty('uuid', id);
-    mesh.geometry.dispose();
-    mesh.material.dispose();
-    scene.remove(mesh);
+///////////////////////////////////
+////////// UI-RELATED FUNCTIONALITY
+/////////////////////////////////////
+
+function switchOptions(){
+  var checkboxes = document.querySelectorAll(".option");
+  console.log(checkboxes.length);
+  checkboxes.forEach(checkbox => {
+    console.log(checkbox.id);
+    console.log(checkbox.checked)
+    options[checkbox.id] = checkbox.checked;
   });
-  renderer.renderLists.dispose();
-  mesh_IDs = [];
 }
 
 function handleBatch(batch) {
@@ -29,16 +31,19 @@ function handleBatch(batch) {
   }
 }
 
+const button = document.querySelector(".render-button");
 button.addEventListener("click", () => {
 
   scene_cleanup();
+
+  switchOptions();
 
   fetch('http://localhost:5000/data', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ message: 'Send Gaussians' })
+    body: JSON.stringify({ message: options })
   })
     .then(response => {
       const reader = response.body.getReader();
@@ -91,6 +96,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff); // set background color to white
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1000);
+camera.position.set(-0.1, -0.1, -0.3);
 
 const axesHelper = new AxesHelper(2);
 scene.add(axesHelper);
@@ -139,9 +145,18 @@ function add_gaussian_to_scene(sample_json){
 
 }
 
-function animate() {
+function scene_cleanup(){
+  mesh_IDs.map(id =>{
+    var mesh = scene.getObjectByProperty('uuid', id);
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+    scene.remove(mesh);
+  });
+  renderer.renderLists.dispose();
+  mesh_IDs = [];
+}
 
-  camera.position.set(-0.1, -0.1, -0.3);
+function animate() {
 
   camera.lookAt(position[0], position[1], position[2]);
 

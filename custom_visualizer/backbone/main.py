@@ -8,8 +8,8 @@ from custom_visualizer.backbone.helpers import get_data
 app = Flask(__name__)
 CORS(app)
 
-def generate():
-    response = get_data()
+def generate(options):
+    response = get_data(options)
     for batch in response:
         yield json.dumps(batch) + '\n' 
 
@@ -17,9 +17,9 @@ def generate():
 def receive_message():
     gc.collect()
     data = request.get_json()
-    print("Received data:", data)
+    print("Received data:", data['message'])
 
-    return Response(generate(), mimetype='application/json')
+    return Response(generate(data['message']), mimetype='application/json')
 
 if __name__ == "__main__":
     app.run()

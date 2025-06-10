@@ -1,24 +1,24 @@
 class OptionChanger(object):
 
-    def __init__(self):
+    def __init__(self, option_dict):
         # Initial settings belong to the base model
-        self.wo_depth_refine = False
+        self.wo_depth_refine = not option_dict['depth_refinement']
         self.wo_cost_volume = False
-        self.wo_backbone_cross_attn = False
-        self.wo_cost_volume_refine = False
-        self.use_epipolar_trans = False
+        self.wo_backbone_cross_attn = not option_dict['cross_attention']
+        self.wo_cost_volume_refine = not option_dict['cv_refinement']
+        self.use_epipolar_trans = not option_dict['epipolar_transformer']
 
-        self.multiview_trans_attn_split = 5
+        # self.multiview_trans_attn_split = 5
 
         self.d_feature = 128
 
         self.costvolume_unet_feat_dim = 64
-        self.costvolume_unet_attn_res = [40]
-        self.costvolume_unet_channel_mult = [1, 2, 5]
+        # self.costvolume_unet_attn_res = [40]
+        # self.costvolume_unet_channel_mult = [1, 2, 5]
 
-        self.depth_unet_feat_dim = 64
-        self.depth_unet_attn_res = [40]
-        self.depth_unet_channel_mult = [1, 2, 5]
+        # self.depth_unet_feat_dim = 64
+        # self.depth_unet_attn_res = [40]
+        # self.depth_unet_channel_mult = [1, 2, 5]
 
         self.proportion_to_keep = 0.05
 

@@ -27,7 +27,7 @@ with install_import_hook(
 ):
     from src.config import load_typed_root_config
     from src.dataset.data_module import DataModule
-    from src.global_cfg import set_cfg
+    from src.global_cfg import set_cfg, get_cfg
     from src.loss import get_losses
     from src.misc.LocalLogger import LocalLogger
     from src.misc.step_tracker import StepTracker
@@ -47,8 +47,12 @@ def cyan(text: str) -> str:
     config_name="main",
 )
 def train(cfg_dict: DictConfig):
-    cfg = load_typed_root_config(cfg_dict)
-    set_cfg(cfg_dict)
+    # cfg = load_typed_root_config(cfg_dict)
+    # set_cfg(cfg_dict)
+
+    cfg = get_cfg()
+
+    print(cfg.model.encoder.wo_cost_volume_refine)
 
     # Set up the output directory.
     if cfg_dict.output_dir is None:

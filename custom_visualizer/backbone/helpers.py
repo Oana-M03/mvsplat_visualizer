@@ -26,20 +26,23 @@ from src.model.encoder.common.gaussian_adapter import Gaussians
 from src.main import train
 
 global_cfg = None
-encoder_cfg = None
-options = OptionChanger()
 model = None
 
 def change_config(override_obj : OptionChanger):
     # Change configuration of encoder model of MVSplat
-    override_dict = override_obj.get_config_override()
+    global global_cfg
+    encoder = global_cfg.model.encoder
 
-    override_list = [f"++{k}={v}" for k, v in override_dict.items()]
+    encoder.wo_backbone_cross_attn = override_obj.wo_backbone_cross_attn
+    encoder.wo_cost_volume_refine = override_obj.wo_cost_volume_refine
+    encoder.wo_depth_refine = override_obj.wo_depth_refine
+    encoder.use_epipolar_trans = override_obj.use_epipolar_trans
 
-    with initialize(version_base=None, config_path='../../config/model/encoder'):
-        cfg = compose(config_name="costvolume", overrides=override_list)
+    # encoder.d_feature = override_obj.d_feature
+    # encoder.costvolume_unet_feat_dim = override_obj.costvolume_unet_feat_dim
 
-        return cfg
+    global_cfg.model.encoder = encoder
+    set_cfg(global_cfg)
 
 ## Used to load main configuration file upon calling the function
 @hydra.main(
@@ -107,11 +110,12 @@ def serializable_gaussians(gaussian: Gaussians, indices: List[int]):
 
     return batch
 
-def get_data():
+def get_data(data_dict):
 
-    new_options = OptionChanger()
+    new_options = OptionChanger(data_dict)
 
     init_configs()
+    change_config(new_options)
 
     print("Obtaining Gaussians...")
     all_gaussians, indices = obtain_gaussians(new_options.proportion_to_keep)
