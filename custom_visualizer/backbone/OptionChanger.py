@@ -6,7 +6,7 @@ class OptionChanger(object):
         self.info_request = option_dict['vis_choice']
 
         self.wo_depth_refine = not option_dict['depth_refinement']
-        self.wo_cost_volume = False
+        self.wo_cost_volume = not option_dict['cost_volume']
         self.wo_backbone_cross_attn = not option_dict['cross_attention']
         self.wo_cost_volume_refine = not option_dict['cv_refinement']
         self.use_epipolar_trans = not option_dict['epipolar_transformer']
@@ -23,7 +23,10 @@ class OptionChanger(object):
         # self.depth_unet_attn_res = [40]
         # self.depth_unet_channel_mult = [1, 2, 5]
 
-        self.proportion_to_keep = 0.15
+        if 'gauss_percentage' in option_dict:
+            self.proportion_to_keep = float(option_dict['gauss_percentage']) / 100.0
+        else:
+            self.proportion_to_keep = 0.15
         self.sample_idx = 0
 
 

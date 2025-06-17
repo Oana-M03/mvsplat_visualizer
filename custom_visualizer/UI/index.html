@@ -42,6 +42,7 @@
         .checkbox-container {
             font-size: 20px;
             font-family: Georgia, serif;
+            display: none;
         }
         
         .checkbox-container input[type="checkbox"] {
@@ -55,6 +56,13 @@
             cursor: pointer;
         }
         
+        button {
+            border-radius: 1rem;
+            font-family: Georgia, serif;
+            background-color: #85c1e9;
+            font-size: 1.5rem; 
+        }
+
         .render-button {
             position: absolute;
             bottom: 0;
@@ -78,6 +86,24 @@
             background-color: #ccc;
             margin: 20px 0;
         }
+
+        .show-images{
+            display: none;
+            text-align: center;
+        }
+
+        .show-video{
+            display: none;
+            text-align: center;
+        }
+
+        .show-gaussians{
+            display: none;
+        }
+
+        .waiting{
+            background-color: aliceblue;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +124,10 @@
     <div class="main-container" style="display:flex; gap:10px">
         <div class="controls-container">
             <div class="checkbox-container">
+                <label>
+                    <input type="checkbox" class="option" id="cost_volume" onclick="switchOptions()" checked>
+                    Use Cost Volume
+                </label>
                 <label>
                     <input type="checkbox" class="option" id="cv_refinement" onclick="switchOptions()" checked>
                     Cost Volume Refinement
@@ -137,6 +167,15 @@
             <video id="playing-video" width="50%" height="50%" controls>
                 Please click the button to generate a rendered video.
             </video>
+        </div>
+    </div>
+
+    <div class="show-gaussians">
+        <div class="percentage-slider">
+            <p>Please indicate the percentage of Gaussians to display</p>
+            <p>Note: We recommend displaying as few Gaussians as possible to avoid running out of memory.</p>
+            <input type="range" min="1" max="100" value="15" class="slider" id="gaussPercent">
+            <p id="curr_percent">Current percentage: 15%.</p>
         </div>
     </div>
 

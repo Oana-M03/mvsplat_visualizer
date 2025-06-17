@@ -39,6 +39,7 @@ def change_config(override_obj : OptionChanger):
     encoder.wo_cost_volume_refine = override_obj.wo_cost_volume_refine
     encoder.wo_depth_refine = override_obj.wo_depth_refine
     encoder.use_epipolar_trans = override_obj.use_epipolar_trans
+    encoder.wo_cost_volume = override_obj.wo_cost_volume
 
     global_cfg.sample_idx = override_obj.sample_idx
 

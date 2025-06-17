@@ -4,7 +4,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 var mesh_IDs = [];
 var options = {};
-var image_blobs = [];
 let currIndex = 0;
 
 /////////////////////////////////////
@@ -44,19 +43,33 @@ radio_div.addEventListener('change', event =>{
     if(event.target.value == 'images'){
       document.querySelector(".show-images").style.display = 'block';
       document.querySelector(".checkbox-container").style.display = 'none';
+      document.querySelector(".show-video").style.display = 'none';
       scene_cleanup();
       hide_scene();
     } else if(event.target.value == 'video'){
       document.querySelector(".show-images").style.display = 'none';
       document.querySelector(".checkbox-container").style.display = 'block';
+      document.querySelector(".show-video").style.display = 'block';
       scene_cleanup();
       hide_scene();
     } else{
       document.querySelector(".show-images").style.display = 'none';
       document.querySelector(".checkbox-container").style.display = 'block';
+      document.querySelector(".show-video").style.display = 'none';
+      document.querySelector(".show-gaussians").style.display = 'block';
       show_scene();
     }
 
+  }
+});
+
+const gaussiansOptionsDiv = document.querySelector(".show-gaussians");
+
+gaussiansOptionsDiv.addEventListener('change', event => {
+  if(event.target.type == 'range' && event.target.id == 'gaussPercent'){
+    options['gauss_percentage'] = event.target.value;
+    const percent_label = document.querySelector('#curr_percent');
+    percent_label.innerHTML = 'Current percentage: ' + event.target.value + '%.';
   }
 });
 
@@ -150,8 +163,6 @@ button.addEventListener("click", () => {
   switchOptions();
 
   radio_div.style.pointerEvents = 'none';
-  button.value = "Please wait for process to finish";
-  button.style.backgroundColor = 'aliceblue';
 
   if(options['vis_choice'] == 'gaussians'){
     fetch_gaussians();
@@ -164,8 +175,6 @@ button.addEventListener("click", () => {
   }
 
   radio_div.style.pointerEvents = 'auto';
-  button.value = 'Show Visualization';
-  button.style.backgroundColor = '#85c1e9';
 
 });
 
@@ -213,7 +222,6 @@ const controls = new OrbitControls( camera, renderer.domElement );
 function add_gaussian_to_scene(sample_json){
 
   const color = new THREE.Color(0, 255 * sample_json.opacity, 0);
-  console.log(sample_json.opacity);
   var material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: sample_json.opacity });
 
   const ellipsoidGeometry = new THREE.SphereGeometry(1, 32, 32);
