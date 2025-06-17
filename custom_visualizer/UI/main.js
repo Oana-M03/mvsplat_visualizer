@@ -213,6 +213,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 function add_gaussian_to_scene(sample_json){
 
   const color = new THREE.Color(0, 255 * sample_json.opacity, 0);
+  console.log(sample_json.opacity);
   var material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: sample_json.opacity });
 
   const ellipsoidGeometry = new THREE.SphereGeometry(1, 32, 32);

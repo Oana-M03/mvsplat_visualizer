@@ -159,13 +159,20 @@ def train(cfg_dict: DictConfig):
 
     if cfg.info_request == "gaussians":
         cfg.test.save_video = False
-        first_item = data_module.test_dataloader()
-        count = 0
-        while count <= cfg.sample_idx:
-            first_item = next(iter(first_item))
-            count +=1
+
+        model_wrapper.eval()
+        model_wrapper.freeze()
+        torch.set_grad_enabled(False)
+
+        dataloader = data_module.test_dataloader()
+
         encoder = model_wrapper.encoder
-        gaussians = encoder(first_item['context'], 1)
+
+        for batch_idx, batch in enumerate(dataloader): # this dataloader has a single instance
+            # Move everything to one device
+            batch = model_wrapper.transfer_batch_to_device(batch, model_wrapper.device, batch_idx)
+            gaussians = encoder(batch['context'], 1)
+
         gaussian_file_path = 'custom_visualizer/UI/public'
 
         with open (f'{gaussian_file_path}/gaussians.pkl', 'w+b') as f:
@@ -180,16 +187,11 @@ def train(cfg_dict: DictConfig):
         model_wrapper.freeze()
         torch.set_grad_enabled(False)
 
-        # 3. Get your dataloader
         dataloader = data_module.test_dataloader()
 
-        # 4. Manually run test_step with video saving
         with torch.no_grad():
             for batch_idx, batch in enumerate(dataloader):
-                # Move to device if needed
                 batch = model_wrapper.transfer_batch_to_device(batch, model_wrapper.device, batch_idx)
-                
-                # Directly call test_step with batch index
                 model_wrapper.test_step(batch, batch_idx) 
 
     # if cfg.mode == "train":

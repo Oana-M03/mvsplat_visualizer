@@ -72,7 +72,7 @@ def obtain_gaussians(gaussian_proportion=0.05):
 
     print(f'Keeping only the top {gaussian_proportion * 100}% of the Gaussians in terms of opacity')
 
-    opacities = getattr(gaussian, "opacities").squeeze(0).detach().numpy()
+    opacities = getattr(gaussian, "opacities").squeeze(0).detach().cpu().numpy()
     no_to_select = int(len(opacities) * gaussian_proportion)
 
     indices = opacities.argsort()[-no_to_select:][::-1]
@@ -87,21 +87,21 @@ def serializable_gaussians(gaussian: Gaussians, indices: List[int]):
 
     print(f'We have: {len(indices)} Gaussians')
 
-    avg_pos = getattr(gaussian, "means").squeeze(0).detach().numpy()
+    avg_pos = getattr(gaussian, "means").squeeze(0).detach().cpu().numpy()
     avg_pos = np.mean(avg_pos[indices], axis=0).tolist()
 
     for idx in indices:
         gaussian_dict = {}
 
-        gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().numpy().tolist()
-        gaussian_dict['opacity'] = getattr(gaussian, "opacities").squeeze(0)[idx].detach().numpy().tolist()
-        gaussian_dict['scales'] = getattr(gaussian, "scales").squeeze(0)[idx, :].detach().numpy().tolist()
+        gaussian_dict['position'] = getattr(gaussian, "means").squeeze(0)[idx, :].detach().cpu().numpy().tolist()
+        gaussian_dict['opacity'] = getattr(gaussian, "opacities").squeeze(0)[idx].detach().cpu().numpy().tolist()
+        gaussian_dict['scales'] = getattr(gaussian, "scales").squeeze(0)[idx, :].detach().cpu().numpy().tolist()
 
         rotations = getattr(gaussian, "rotations").squeeze(0)[idx, :]
 
         # Transform coordinates from xyzw to wxyz
         rotations = torch.Tensor((rotations[3], rotations[0], rotations[1], rotations[2]))
-        rotations = rotations.detach().numpy()
+        rotations = rotations.detach().cpu().numpy()
         euler_angles = Rotation.from_quat(rotations).as_euler('XYZ')
         gaussian_dict['rotation'] = euler_angles.tolist()
 

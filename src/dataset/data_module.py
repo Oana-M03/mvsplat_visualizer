@@ -8,7 +8,9 @@ from pytorch_lightning import LightningDataModule
 from torch import Generator, nn
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from ..misc.step_tracker import StepTracker
+from custom_visualizer.backbone.SingleSampleDataset import SingleSampleDataset
+
+from ..misc.step_tracker import StepTracker 
 from . import DatasetCfg, get_dataset
 from .types import DataShim, Stage
 from .validation_wrapper import ValidationWrapper
@@ -61,6 +63,7 @@ class DataModule(LightningDataModule):
     step_tracker: StepTracker | None
     dataset_shim: DatasetShim
     global_rank: int
+    sample_index: int
 
     def __init__(
         self,
@@ -69,6 +72,7 @@ class DataModule(LightningDataModule):
         step_tracker: StepTracker | None = None,
         dataset_shim: DatasetShim = lambda dataset, _: dataset,
         global_rank: int = 0,
+        sample_index: int = 0
     ) -> None:
         super().__init__()
         self.dataset_cfg = dataset_cfg
@@ -76,6 +80,7 @@ class DataModule(LightningDataModule):
         self.step_tracker = step_tracker
         self.dataset_shim = dataset_shim
         self.global_rank = global_rank
+        self.sample_index = sample_index
 
     def get_persistent(self, loader_cfg: DataLoaderStageCfg) -> bool | None:
         return None if loader_cfg.num_workers == 0 else loader_cfg.persistent_workers
@@ -119,12 +124,15 @@ class DataModule(LightningDataModule):
             self.step_tracker,
         )
         dataset = self.dataset_shim(dataset, "test")
+
+        single_sample_dataset = SingleSampleDataset(dataset, self.sample_index)
+        
         return DataLoader(
-            dataset,
-            self.data_loader_cfg.test.batch_size,
-            num_workers=self.data_loader_cfg.test.num_workers,
+            single_sample_dataset,
+            batch_size=1,  
+            num_workers=0,
             generator=self.get_generator(self.data_loader_cfg.test),
             worker_init_fn=worker_init_fn,
-            persistent_workers=self.get_persistent(self.data_loader_cfg.test),
+            persistent_workers=False,
             shuffle=False,
         )
