@@ -156,16 +156,36 @@ def train(cfg_dict: DictConfig):
         global_rank=trainer.global_rank,
     )
 
-    if cfg.mode == "train":
-        # trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
-        #     checkpoint_path if cfg.checkpointing.resume else None))
-        print('Invalid. Please run the function with mode=test.')
-    else:
+    if cfg.info_request == "gaussians":
+        cfg.test.save_video = False
         first_item = data_module.test_dataloader()
-        first_item = next(iter(first_item))
+        count = 0
+        while count <= cfg.sample_idx:
+            first_item = next(iter(first_item))
+            count +=1
         encoder = model_wrapper.encoder
         gaussians = encoder(first_item['context'], 1)
-        
+        gaussian_file_path = 'custom_visualizer/UI/public'
+
+        with open (f'{gaussian_file_path}/gaussians.pkl', 'w+b') as f:
+            pickle.dump(gaussians, f)
+
+    elif cfg.info_request == "video":
+        cfg.test.save_video = True
+
+        cfg.output_video = output_dir
+
+        trainer.test(
+            model_wrapper,
+            datamodule=data_module,
+            ckpt_path=checkpoint_path,
+        )
+
+    # if cfg.mode == "train":
+    #     # trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
+    #     #     checkpoint_path if cfg.checkpointing.resume else None))
+    #     print('Invalid. Please run the function with mode=test.')
+    # else:
         # count = 0
 
         # for img in first_item['target']['image'].squeeze():
@@ -173,11 +193,6 @@ def train(cfg_dict: DictConfig):
         #     pil_img = to_pil_image(img)
         #     pil_img.save(f'img_{count}.png')
         #     count += 1
-
-        gaussian_file_path = 'custom_visualizer/UI/public'
-
-        with open (f'{gaussian_file_path}/gaussians.pkl', 'w+b') as f:
-            pickle.dump(gaussians, f)
 
         # trainer.test(
         #     model_wrapper,

@@ -2,6 +2,9 @@ class OptionChanger(object):
 
     def __init__(self, option_dict):
         # Initial settings belong to the base model
+
+        self.info_request = option_dict['vis_choice']
+
         self.wo_depth_refine = not option_dict['depth_refinement']
         self.wo_cost_volume = False
         self.wo_backbone_cross_attn = not option_dict['cross_attention']
@@ -10,9 +13,9 @@ class OptionChanger(object):
 
         # self.multiview_trans_attn_split = 5
 
-        self.d_feature = 128
+        # self.d_feature = 128
 
-        self.costvolume_unet_feat_dim = 64
+        # self.costvolume_unet_feat_dim = 64
         # self.costvolume_unet_attn_res = [40]
         # self.costvolume_unet_channel_mult = [1, 2, 5]
 
@@ -20,7 +23,7 @@ class OptionChanger(object):
         # self.depth_unet_attn_res = [40]
         # self.depth_unet_channel_mult = [1, 2, 5]
 
-        self.proportion_to_keep = 0.05
+        self.proportion_to_keep = 0.15
 
 
     def get_config_override(self):

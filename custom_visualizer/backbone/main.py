@@ -4,7 +4,7 @@ import gc
 import json
 import io
 
-from custom_visualizer.backbone.helpers import get_data, get_images
+from custom_visualizer.backbone.helpers import get_data, get_images, get_video
 
 app = Flask(__name__)
 CORS(app)
@@ -52,6 +52,16 @@ def get_images_endpoint():
                     headers={
                         'Content-type': 'image/jpeg', 
                         'Access-Control-Allow-Origin': '*'})
+
+@app.route('/video', methods=['POST'])
+def get_video_endpoint():
+    gc.collect()
+    data = request.get_json()
+    print("Received data: ", data['message'])
+
+    path = get_video(data['message'])
+
+    return Response(json.dumps({'message': path}), mimetype='application/json')
 
 if __name__ == "__main__":
 

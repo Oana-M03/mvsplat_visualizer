@@ -43,6 +43,8 @@ def change_config(override_obj : OptionChanger):
     # encoder.costvolume_unet_feat_dim = override_obj.costvolume_unet_feat_dim
 
     global_cfg.model.encoder = encoder
+
+    global_cfg.info_request = override_obj.info_request
     set_cfg(global_cfg)
 
 ## Used to load main configuration file upon calling the function
@@ -148,6 +150,20 @@ def get_images():
     print("Input images obtained")
 
     return img_list
+
+def get_video(data_dict):
+    print("Obtaining video...")
+
+    new_options = OptionChanger(data_dict)
+
+    init_configs()
+    change_config(new_options)
+
+    train()
+
+    global global_cfg
+
+    return global_cfg.output_video
 
 if __name__ == "__main__":
 

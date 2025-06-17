@@ -13,7 +13,6 @@ let currIndex = 0;
 
 function switchOptions(){
   var checkboxes = document.querySelectorAll(".option");
-  console.log(checkboxes.length);
   checkboxes.forEach(checkbox => {
     options[checkbox.id] = checkbox.checked;
   });
@@ -43,18 +42,18 @@ radio_div.addEventListener('change', event =>{
     options['vis_choice'] = event.target.value;
 
     if(event.target.value == 'images'){
-      document.querySelector(".show-images").style.visble = 'true';
-      document.querySelector(".checkbox-container").style.visible = 'false';
+      document.querySelector(".show-images").style.display = 'block';
+      document.querySelector(".checkbox-container").style.display = 'none';
       scene_cleanup();
       hide_scene();
     } else if(event.target.value == 'video'){
-      document.querySelector(".show-images").style.visble = 'false';
-      ocument.querySelector(".checkbox-container").style.visible = 'true';
+      document.querySelector(".show-images").style.display = 'none';
+      document.querySelector(".checkbox-container").style.display = 'block';
       scene_cleanup();
       hide_scene();
     } else{
-      document.querySelector(".show-images").style.visble = 'false';
-      ocument.querySelector(".checkbox-container").style.visible = 'true';
+      document.querySelector(".show-images").style.display = 'none';
+      document.querySelector(".checkbox-container").style.display = 'block';
       show_scene();
     }
 
@@ -119,11 +118,26 @@ function fetch_image(index){
     body: JSON.stringify({ index : index })})
     .then(response => response.blob())
     .then(blob =>{
-      console.log(blob);
       document.querySelector('#main-image').src = URL.createObjectURL(blob);
     }
   );
 } 
+
+
+function fetch_video(){
+  fetch('http://localhost:5000/video', {
+    method: 'POST',
+    headers: {
+      'Content-type': 'application/json',
+    },
+    body: JSON.stringify({message: options})
+  })
+  .then(response => {
+    const path = response.json()['message'];
+    const video_div = document.querySelector('#real-video-player');
+    video_div.src = path;
+  });
+}
 
 button.addEventListener("click", () => {
 
@@ -132,15 +146,22 @@ button.addEventListener("click", () => {
   switchOptions();
 
   radio_div.style.pointerEvents = 'none';
+  button.value = "Please wait for process to finish";
+  button.style.backgroundColor = 'aliceblue';
 
   if(options['vis_choice'] == 'gaussians'){
     fetch_gaussians();
   } else if(options['vis_choice'] == 'images'){
-    console.log('HERE');
     fetch_image(0);
+  } else if(options['vis_choice'] == 'video'){
+    fetch_video();
+  } else{
+    console.log('An error occurred');
   }
 
   radio_div.style.pointerEvents = 'auto';
+  button.value = 'Show Visualization';
+  button.style.backgroundColor = '#85c1e9';
 
 });
 
@@ -188,7 +209,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 function add_gaussian_to_scene(sample_json){
 
   const color = new THREE.Color(0, 255 * sample_json.opacity, 0);
-  var material = new THREE.MeshBasicMaterial({ color: color, transparent: false, opacity: sample_json.opacity });
+  var material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: sample_json.opacity });
 
   const ellipsoidGeometry = new THREE.SphereGeometry(1, 32, 32);
   const ellipsoidMesh = new THREE.Mesh(ellipsoidGeometry, material);

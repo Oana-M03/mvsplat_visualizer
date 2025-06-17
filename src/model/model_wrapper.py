@@ -200,7 +200,7 @@ class ModelWrapper(LightningModule):
             )
 
         (scene,) = batch["scene"]
-        name = get_cfg()["wandb"]["name"]
+        name = get_cfg().wandb["name"]
         path = self.test_cfg.output_path / name
         images_prob = output.color[0]
         rgb_gt = batch["target"]["image"][0]
@@ -243,7 +243,7 @@ class ModelWrapper(LightningModule):
             )
 
     def on_test_end(self) -> None:
-        name = get_cfg()["wandb"]["name"]
+        name = get_cfg().wandb["name"]
         out_dir = self.test_cfg.output_path / name
         saved_scores = {}
         if self.test_cfg.compute_scores:
