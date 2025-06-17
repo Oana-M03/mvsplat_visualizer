@@ -125,6 +125,8 @@ function fetch_image(index){
 
 
 function fetch_video(){
+  console.log(options);
+
   fetch('http://localhost:5000/video', {
     method: 'POST',
     headers: {
@@ -132,11 +134,13 @@ function fetch_video(){
     },
     body: JSON.stringify({message: options})
   })
-  .then(response => {
-    const path = response.json()['message'];
-    const video_div = document.querySelector('#real-video-player');
-    video_div.src = path;
-  });
+  .then(response => response.blob())
+    .then(blob => {
+      const video = document.querySelector('#playing-video');
+      video.src = URL.createObjectURL(blob);
+      video.load();
+      video.play();
+    });
 }
 
 button.addEventListener("click", () => {

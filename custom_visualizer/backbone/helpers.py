@@ -15,6 +15,7 @@ import torch
 import pickle
 import numpy as np
 import torchvision.transforms.functional as F
+from pathlib import Path
 
 from custom_visualizer.backbone.OptionChanger import OptionChanger
 
@@ -38,6 +39,8 @@ def change_config(override_obj : OptionChanger):
     encoder.wo_cost_volume_refine = override_obj.wo_cost_volume_refine
     encoder.wo_depth_refine = override_obj.wo_depth_refine
     encoder.use_epipolar_trans = override_obj.use_epipolar_trans
+
+    global_cfg.sample_idx = override_obj.sample_idx
 
     # encoder.d_feature = override_obj.d_feature
     # encoder.costvolume_unet_feat_dim = override_obj.costvolume_unet_feat_dim
@@ -163,7 +166,11 @@ def get_video(data_dict):
 
     global global_cfg
 
-    return global_cfg.output_video
+    folder_path = Path('outputs/test/re10k/video')
+
+    path_to_vid = next(folder_path.iterdir())
+
+    return str(os.path.abspath(path_to_vid))
 
 if __name__ == "__main__":
 

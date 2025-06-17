@@ -144,10 +144,11 @@ def train(cfg_dict: DictConfig):
         # Just load model weights, without optimizer states
         # e.g., fine-tune from the released weights on other datasets
         model_wrapper = ModelWrapper.load_from_checkpoint(
-            checkpoint_path, **model_kwargs, strict=True)
+            checkpoint_path, **model_kwargs, strict=False)
         print(cyan(f"Loaded weigths from {checkpoint_path}."))
     else:
-        model_wrapper = ModelWrapper(**model_kwargs)
+        model_wrapper = ModelWrapper.load_from_checkpoint(
+            checkpoint_path, **model_kwargs, strict=False)
 
     data_module = DataModule(
         cfg.dataset,
@@ -175,11 +176,21 @@ def train(cfg_dict: DictConfig):
 
         cfg.output_video = output_dir
 
-        trainer.test(
-            model_wrapper,
-            datamodule=data_module,
-            ckpt_path=checkpoint_path,
-        )
+        model_wrapper.eval()
+        model_wrapper.freeze()
+        torch.set_grad_enabled(False)
+
+        # 3. Get your dataloader
+        dataloader = data_module.test_dataloader()
+
+        # 4. Manually run test_step with video saving
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(dataloader):
+                # Move to device if needed
+                batch = model_wrapper.transfer_batch_to_device(batch, model_wrapper.device, batch_idx)
+                
+                # Directly call test_step with batch index
+                model_wrapper.test_step(batch, batch_idx) 
 
     # if cfg.mode == "train":
     #     # trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(

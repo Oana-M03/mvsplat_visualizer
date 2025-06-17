@@ -1,4 +1,4 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, send_file
 from flask_cors import CORS
 import gc
 import json
@@ -61,7 +61,10 @@ def get_video_endpoint():
 
     path = get_video(data['message'])
 
-    return Response(json.dumps({'message': path}), mimetype='application/json')
+    response = send_file(path, mimetype='video/mp4')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+
+    return response
 
 if __name__ == "__main__":
 

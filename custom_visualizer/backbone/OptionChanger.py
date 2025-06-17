@@ -24,6 +24,7 @@ class OptionChanger(object):
         # self.depth_unet_channel_mult = [1, 2, 5]
 
         self.proportion_to_keep = 0.15
+        self.sample_idx = 0
 
 
     def get_config_override(self):
