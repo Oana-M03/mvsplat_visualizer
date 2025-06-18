@@ -4,7 +4,7 @@ import gc
 import json
 import io
 
-from custom_visualizer.backbone.helpers import get_data, get_images, get_video
+from custom_visualizer.backbone.helpers import get_data, load_all_images, get_video, get_number_scenes
 
 app = Flask(__name__)
 CORS(app)
@@ -24,8 +24,9 @@ def get_gaussians():
 
     return Response(generate_gaussians(data['message']), mimetype='application/json')
 
-def generate_images():
-    response = get_images()
+def generate_images(new_scene_id):
+
+    response = images[new_scene_id]
 
     imglist = []
 
@@ -43,8 +44,11 @@ def get_images_endpoint():
     data = request.get_json()
     print("Received data:", data)
 
-    img_id = data['index'] % len(images)
+    new_scene_id = data['scene_idx']
 
+    images = generate_images(new_scene_id)
+
+    img_id = data['img_idx'] % len(images)
     img = images[img_id]
 
     return Response(img, 
@@ -66,8 +70,17 @@ def get_video_endpoint():
 
     return response
 
+@app.route('/no-scenes', methods=['GET'])
+def get_how_many_scenes():
+    gc.collect()
+
+    response = get_number_scenes()
+
+    return Response(json.dumps({'message': response}), mimetype='application/json')
+
+
 if __name__ == "__main__":
 
-    images = generate_images()
+    images = load_all_images()
 
     app.run()

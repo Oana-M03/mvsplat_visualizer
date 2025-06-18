@@ -30,6 +30,14 @@ from src.dataset.data_module import get_dataset
 global_cfg = None
 model = None
 
+def get_number_scenes():
+    init_configs()
+
+    global global_cfg
+
+    dataset = get_dataset(global_cfg.dataset, "test", StepTracker())
+    return len(dataset)
+
 def change_config(override_obj : OptionChanger):
     # Change configuration of encoder model of MVSplat
     global global_cfg
@@ -136,24 +144,29 @@ def get_data(data_dict):
 
     return serializable_gaussians(all_gaussians, indices)
 
-def get_images():
+def load_all_images():
     init_configs()
 
     print("Obtaining input images...")
 
-    global global_cfg
+    all_images_list = []
+
     dataset = get_dataset(global_cfg.dataset, "test", StepTracker())
-    img = next(iter(dataset))
-    target_img = img['target']['image']
 
-    img_list = []
+    count = 0
+    print(f'DATASET HAS SIZE: {len(dataset)}')
 
-    for img in target_img:
-        img_list.append(F.to_pil_image(img))
-    
-    print("Input images obtained")
+    for img in dataset:
+        img_list = []
+        target_img = img['target']['image']
+        for img in target_img:
+            img_list.append(F.to_pil_image(img))
+        all_images_list.append(img_list)
+        count += 1
 
-    return img_list
+    print("All input images obtained")
+
+    return all_images_list
 
 def get_video(data_dict):
     print("Obtaining video...")

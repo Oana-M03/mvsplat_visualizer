@@ -27,7 +27,8 @@ class OptionChanger(object):
             self.proportion_to_keep = float(option_dict['gauss_percentage']) / 100.0
         else:
             self.proportion_to_keep = 0.15
-        self.sample_idx = 0
+
+        self.sample_idx = option_dict['request_sample_idx']
 
 
     def get_config_override(self):

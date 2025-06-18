@@ -5,10 +5,21 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 var mesh_IDs = [];
 var options = {};
 let currIndex = 0;
+let numberOfScenes = 0;
+let selectedScene = 0;
 
 /////////////////////////////////////
 /////////// UI-RELATED FUNCTIONALITY
 /////////////////////////////////////
+
+document.addEventListener("DOMContentLoaded", (event) => {
+  fetch('http://localhost:5000/no-scenes')
+  .then(response => response.json())
+  .then(data => {
+    numberOfScenes = data['message'];
+    console.log(numberOfScenes)
+  });
+});
 
 function switchOptions(){
   var checkboxes = document.querySelectorAll(".option");
@@ -25,7 +36,6 @@ function handleBatch(batch) {
         add_gaussian_to_scene(gaussian);
       }
     } else if (batch && typeof batch === 'object') {
-      // Handle single object
       add_gaussian_to_scene(batch);
     } else {
       console.warn('Received batch is neither array nor object:', batch);
@@ -72,6 +82,28 @@ gaussiansOptionsDiv.addEventListener('change', event => {
     percent_label.innerHTML = 'Current percentage: ' + event.target.value + '%.';
   }
 });
+
+document.querySelector(".dropbtn").addEventListener('click', getSceneDropdown);
+
+function getSceneDropdown() {
+    const dropdown = document.getElementById('sceneChoice');
+    
+    dropdown.innerHTML = '';
+
+    for (let i = 1; i <= numberOfScenes; i++) {
+        const item = document.createElement('a');
+        item.href = "#"; 
+        item.textContent = `Scene ${i}`;
+        item.class = "dropdownElement";
+        item.onclick = () => {
+            options['request_sample_idx'] = i;
+            document.querySelector(".dropbtn").innerHTML = `Scene ${i}`;
+            currIndex = 0;
+            selectedScene = i;
+        };
+        dropdown.appendChild(item);
+    }
+}
 
 const button = document.querySelector(".render-button");
 
@@ -122,13 +154,14 @@ function fetch_gaussians(){
     });
 }
 
-function fetch_image(index){
+function fetch_image(scene_idx, img_idx){
   fetch('http://localhost:5000/images', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ index : index })})
+    body: JSON.stringify({ scene_idx: scene_idx, img_idx : img_idx })
+  })
     .then(response => response.blob())
     .then(blob =>{
       document.querySelector('#main-image').src = URL.createObjectURL(blob);
@@ -167,7 +200,7 @@ button.addEventListener("click", () => {
   if(options['vis_choice'] == 'gaussians'){
     fetch_gaussians();
   } else if(options['vis_choice'] == 'images'){
-    fetch_image(0);
+    fetch_image(selectedScene, currIndex);
   } else if(options['vis_choice'] == 'video'){
     fetch_video();
   } else{
@@ -190,12 +223,12 @@ nextButton.addEventListener("click", () =>{
 
 function prevImage(){
   currIndex = currIndex - 1;
-  fetch_image(currIndex);
+  fetch_image(selectedScene, currIndex);
 }
 
 function nextImage(){
   currIndex = currIndex + 1;
-  fetch_image(currIndex);
+  fetch_image(selectedScene, currIndex);
 }
 
 /////////////////////////////////
