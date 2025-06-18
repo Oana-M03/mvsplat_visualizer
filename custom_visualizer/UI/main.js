@@ -126,7 +126,7 @@ function fetch_gaussians(){
               const obj = JSON.parse(buffer);
               handleBatch(obj);
             } catch (e) {
-              // Ignore trailing blank
+              // ignore
             }
           }
           return;

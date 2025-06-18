@@ -38,8 +38,28 @@ def get_number_scenes():
     dataset = get_dataset(global_cfg.dataset, "test", StepTracker())
     return len(dataset)
 
+def get_ablation_path(override_obj: OptionChanger):
+    global global_cfg
+
+    if not os.path.exists("checkpoints/ablations"): # if ablations are not downloaded, load the main model
+        print("Ablation folder not found; defaulting to original model.")
+        return "checkpoints/re10k.ckpt"
+
+    if override_obj.wo_depth_refine and (not override_obj.wo_cost_volume_refine) and (not override_obj.wo_backbone_cross_attn) and override_obj.use_epipolar_trans and (not override_obj.wo_cost_volume):
+        return "checkpoints/ablations/re10k_worefine.ckpt"
+    elif override_obj.wo_depth_refine and override_obj.wo_cost_volume_refine and (not override_obj.wo_backbone_cross_attn) and override_obj.use_epipolar_trans and (not override_obj.wo_cost_volume):
+        return "checkpoints/ablations/re10k_worefine_wounet.ckpt" 
+    elif override_obj.wo_depth_refine and override_obj.wo_cost_volume and (not override_obj.wo_backbone_cross_attn) and override_obj.use_epipolar_trans:
+        return "checkpoints/ablations/re10k_worefine_wocv.ckpt"
+    elif override_obj.wo_depth_refine and (not override_obj.wo_cost_volume_refine) and override_obj.wo_backbone_cross_attn and override_obj.use_epipolar_trans and (not override_obj.wo_cost_volume):
+        return "checkpoints/ablations/re10k_worefine_wobbcrossattn_best.ckpt"
+    elif override_obj.wo_depth_refine and (not override_obj.wo_cost_volume_refine) and (not override_obj.wo_backbone_cross_attn) and (not override_obj.use_epipolar_trans) and (not override_obj.wo_cost_volume):
+        return "checkpoints/ablations/re10k_worefine_wepitrans.ckpt"
+    else:
+        return "checkpoints/re10k.ckpt"
+
 def change_config(override_obj : OptionChanger):
-    # Change configuration of encoder model of MVSplat
+    # Change configuration of MVSplat
     global global_cfg
     encoder = global_cfg.model.encoder
 
@@ -51,14 +71,13 @@ def change_config(override_obj : OptionChanger):
 
     global_cfg.sample_idx = override_obj.sample_idx
 
-    # encoder.d_feature = override_obj.d_feature
-    # encoder.costvolume_unet_feat_dim = override_obj.costvolume_unet_feat_dim
-
     global_cfg.model.encoder = encoder
 
     global_cfg.info_request = override_obj.info_request
 
     global_cfg.sample_idx = override_obj.sample_idx
+
+    global_cfg.checkpointing.load = get_ablation_path(override_obj)
 
     set_cfg(global_cfg)
 
