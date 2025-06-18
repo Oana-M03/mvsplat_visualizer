@@ -4,14 +4,11 @@ class SingleSampleDataset(Dataset):
     def __init__(self, dataset: Dataset, index: int):
         if index >= len(dataset):
             raise IndexError(f"Index {index} is out of range for dataset of size {len(dataset)}")
-        
-        count = 0
-        cur_instance = next(iter(dataset))
-        while count < index:
-            cur_instance = next(iter(dataset))
-            count += 1
 
-        self.instance = cur_instance
+        iterator = iter(dataset)
+        for _ in range(index):
+            next(iterator)
+        self.instance = next(iterator)
 
     def __len__(self):
         return 1

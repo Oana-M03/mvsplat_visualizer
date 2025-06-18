@@ -134,6 +134,7 @@ def train(cfg_dict: DictConfig):
         "optimizer_cfg": cfg.optimizer,
         "test_cfg": cfg.test,
         "train_cfg": cfg.train,
+        "main_cfg": cfg,
         "encoder": encoder,
         "encoder_visualizer": encoder_visualizer,
         "decoder": get_decoder(cfg.model.decoder, cfg.dataset),
@@ -155,6 +156,7 @@ def train(cfg_dict: DictConfig):
         cfg.data_loader,
         step_tracker,
         global_rank=trainer.global_rank,
+        sample_index=cfg.sample_idx,
     )
 
     if cfg.info_request == "gaussians":
@@ -180,8 +182,6 @@ def train(cfg_dict: DictConfig):
 
     elif cfg.info_request == "video":
         cfg.test.save_video = True
-
-        cfg.output_video = output_dir
 
         model_wrapper.eval()
         model_wrapper.freeze()

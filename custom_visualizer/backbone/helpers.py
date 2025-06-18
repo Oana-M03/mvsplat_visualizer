@@ -57,6 +57,9 @@ def change_config(override_obj : OptionChanger):
     global_cfg.model.encoder = encoder
 
     global_cfg.info_request = override_obj.info_request
+
+    global_cfg.sample_idx = override_obj.sample_idx
+
     set_cfg(global_cfg)
 
 ## Used to load main configuration file upon calling the function
@@ -180,13 +183,10 @@ def get_video(data_dict):
 
     global global_cfg
 
-    folder_path = Path('outputs/test/re10k/video')
-
-    path_to_vid = next(folder_path.iterdir())
+    path_to_vid = global_cfg.output_video
 
     return str(os.path.abspath(path_to_vid))
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
     # get_data({'cv_refinement': True, 'depth_refinement': True, 'cross_attention': True, 'epipolar_transformer': True})
-    get_images()

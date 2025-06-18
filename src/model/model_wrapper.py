@@ -41,7 +41,6 @@ from .decoder.decoder import Decoder, DepthRenderingMode
 from .encoder import Encoder
 from .encoder.visualization.encoder_visualizer import EncoderVisualizer
 
-
 @dataclass
 class OptimizerCfg:
     lr: float
@@ -93,6 +92,7 @@ class ModelWrapper(LightningModule):
         optimizer_cfg: OptimizerCfg,
         test_cfg: TestCfg,
         train_cfg: TrainCfg,
+        main_cfg: any,
         encoder: Encoder,
         encoder_visualizer: Optional[EncoderVisualizer],
         decoder: Decoder,
@@ -104,6 +104,7 @@ class ModelWrapper(LightningModule):
         self.test_cfg = test_cfg
         self.train_cfg = train_cfg
         self.step_tracker = step_tracker
+        self.main_cfg = main_cfg
 
         # Set up the model.
         self.encoder = encoder
@@ -213,6 +214,7 @@ class ModelWrapper(LightningModule):
         # save video
         if self.test_cfg.save_video:
             frame_str = "_".join([str(x.item()) for x in batch["context"]["index"][0]])
+            self.main_cfg.output_video = path / "video" / f"{scene}_frame_{frame_str}.mp4"
             save_video(
                 [a for a in images_prob],
                 path / "video" / f"{scene}_frame_{frame_str}.mp4",
