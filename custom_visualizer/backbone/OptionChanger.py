@@ -9,7 +9,7 @@ class OptionChanger(object):
         self.wo_cost_volume = not option_dict['cost_volume']
         self.wo_backbone_cross_attn = not option_dict['cross_attention']
         self.wo_cost_volume_refine = not option_dict['cv_refinement']
-        self.use_epipolar_trans = not option_dict['epipolar_transformer']
+        self.use_epipolar_trans = option_dict['epipolar_transformer']
 
         # self.multiview_trans_attn_split = 5
 

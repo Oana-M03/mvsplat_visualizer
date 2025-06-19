@@ -31,6 +31,8 @@ export LD_LIBRARY_PATH=$(conda info --base)/envs/mvsplat/lib:$LD_LIBRARY_PATH
 python -m custom_visualizer.backbone.main +experiment=re10k checkpointing.load=checkpoints/re10k.ckpt mode=test dataset/view_sampler=evaluation
 ~~~
 
+Please wait for the backend to finish loading before running the frontend
+
 ### Frontend
 
 **Note:** you will need to have Node and npm installed on your computer.

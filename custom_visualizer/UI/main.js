@@ -54,18 +54,21 @@ radio_div.addEventListener('change', event =>{
       document.querySelector(".show-images").style.display = 'block';
       document.querySelector(".checkbox-container").style.display = 'none';
       document.querySelector(".show-video").style.display = 'none';
+      document.querySelector(".show-gaussians").style.display = 'none';
       scene_cleanup();
       hide_scene();
     } else if(event.target.value == 'video'){
       document.querySelector(".show-images").style.display = 'none';
       document.querySelector(".checkbox-container").style.display = 'block';
       document.querySelector(".show-video").style.display = 'block';
+      document.querySelector(".show-gaussians").style.display = 'none';
       scene_cleanup();
       hide_scene();
     } else{
       document.querySelector(".show-images").style.display = 'none';
       document.querySelector(".checkbox-container").style.display = 'block';
       document.querySelector(".show-video").style.display = 'none';
+      document.querySelector(".show-gaussians").style.display = 'block';
       document.querySelector(".show-gaussians").style.display = 'block';
       show_scene();
     }
